@@ -266,7 +266,7 @@ function clearBetHistoryOnly() {
     renderBetHistory();
     updateLossCalculator();
     updateStats();
-    showToast('История ставок очищена');
+    // showToast('История ставок очищена');
 }
 
 // Сброс калькулятора потерь (кнопка)
@@ -274,7 +274,7 @@ function clearCalculator() {
     initialBalanceBaseline = Math.floor(balance);
     localStorage.setItem('casinoBaseline', initialBalanceBaseline);
     updateLossCalculator();
-    showToast('Калькулятор потерь сброшен');
+    // showToast('Калькулятор потерь сброшен');
 }
 
 // Global Balance Update
@@ -327,7 +327,7 @@ function submitDepositQuick(val) {
     localStorage.setItem('casinoBaseline', initialBalanceBaseline);
     updateGlobalBalance();
     updateStats();
-    showToast(`Баланс установлен: $${parsed}`);
+    // showToast(`Баланс установлен: $${parsed}`);
 
     // Animate reset
     const navBal = document.getElementById('nav-global-balance');
@@ -346,7 +346,7 @@ function resetBalanceTo3000() {
     localStorage.setItem('casinoBaseline', initialBalanceBaseline);
     updateGlobalBalance();
     updateStats();
-    showToast('Баланс сброшен до $0');
+    // showToast('Баланс сброшен до $0');
 
     // Обновляем отображение в модалке
     const depBal = document.getElementById('deposit-current-balance');

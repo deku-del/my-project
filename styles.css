@@ -4613,18 +4613,18 @@ body.light-theme .bh-total-lose {
 }
 
 body.light-theme .bh-item-lose {
-    background: #fff5f5 !important;
-    border-left: 4px solid #fc8181 !important;
+    background: #ffe3e3 !important;
+    border-left: 4px solid #ef4444 !important;
 }
 
 body.light-theme .bh-item-win {
-    background: #f0fff4 !important;
-    border-left: 4px solid #68d391 !important;
+    background: #d1fae5 !important;
+    border-left: 4px solid #10b981 !important;
 }
 
 body.light-theme .bh-item-draw {
-    background: #fffff0 !important;
-    border-left: 4px solid #f6e05e !important;
+    background: #fef3c7 !important;
+    border-left: 4px solid #f59e0b !important;
 }
 
 /* --- 4. Развенчание мифов --- */
