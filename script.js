@@ -910,8 +910,14 @@ document.addEventListener('touchend', e => {
     if (touchStartY - touchEndY > 48) {
         const navMenu = document.getElementById('navMenu');
         const toggleBtn = document.querySelector('.menu-toggle');
-        // Плавное скрытие через снятие класса (CSS transition отработает)
+        
         if (navMenu && navMenu.classList.contains('active')) {
+            // Не закрывать меню, если свайп произошел внутри него
+            const target = e.target;
+            if (navMenu.contains(target)) {
+                return; // Игнорируем свайп по самому меню
+            }
+
             navMenu.classList.remove('active');
             if (toggleBtn) toggleBtn.textContent = '☰ Меню';
         }
