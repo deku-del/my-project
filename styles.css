@@ -4389,6 +4389,7 @@ body.light-theme .roulette-result-val.val-green {
     border-color: rgba(239, 68, 68, 0.5) !important;
     box-shadow: 0 0 20px rgba(239, 68, 68, 0.3) !important;
 }
+
 .roulette-result-val.val-red span {
     color: #ef4444 !important;
     -webkit-text-fill-color: #ef4444 !important;
@@ -4400,6 +4401,7 @@ body.light-theme .roulette-result-val.val-green {
     border-color: rgba(148, 163, 184, 0.5) !important;
     box-shadow: 0 0 20px rgba(148, 163, 184, 0.2) !important;
 }
+
 .roulette-result-val.val-black span {
     color: #cbd5e1 !important;
     -webkit-text-fill-color: #cbd5e1 !important;
@@ -4411,6 +4413,7 @@ body.light-theme .roulette-result-val.val-green {
     border-color: rgba(34, 197, 94, 0.5) !important;
     box-shadow: 0 0 20px rgba(34, 197, 94, 0.3) !important;
 }
+
 .roulette-result-val.val-green span {
     color: #22c55e !important;
     -webkit-text-fill-color: #22c55e !important;
@@ -4694,21 +4697,7 @@ body.light-theme #myths h3[style*="color"] {
    ДОПОЛНИТЕЛЬНЫЕ ИСПРАВЛЕНИЯ СВЕТЛОЙ ТЕМЫ (ROUND 4)
    ========================================================= */
 
-/* --- 1. Игровой дисплей (область с результатом игры) --- */
-body.light-theme .game-display {
-    background: rgba(255, 255, 255, 0.85) !important;
-    border: 1px solid rgba(66, 165, 245, 0.2) !important;
-    box-shadow: 0 4px 20px rgba(66, 165, 245, 0.08) !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
-}
-
-body.light-theme .game-anim-text,
-body.light-theme .game-anim-huge {
-    color: #1A365D !important;
-    -webkit-text-fill-color: #1A365D !important;
-    text-shadow: none !important;
-}
+/* Removed game-display override that turned text dark blue */
 
 /* --- 2. Блок статистики казино (баланс, ставки, победы, поражения, ROI) --- */
 body.light-theme .statistics {
@@ -5004,18 +4993,7 @@ body.light-theme .dice-val {
     border: 2px solid #000000 !important;
 }
 
-/* --- 23. Рулетка — светлая тема --- */
-body.light-theme #roulette-display {
-    background: rgba(255, 255, 255, 0.8) !important;
-    backdrop-filter: blur(12px) !important;
-    border: 1px solid rgba(0, 0, 0, 0.05) !important;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04) !important;
-}
-
-body.light-theme #roulette-anim.game-anim-text {
-    color: #334155 !important;
-    text-shadow: none !important;
-}
+/* Removed roulette overrides causing white backgrounds and gray animation text */
 
 body.light-theme button[onclick*="playRoulette('red')"] {
     background: linear-gradient(135deg, #ef4444, #dc2626) !important;
@@ -5114,94 +5092,100 @@ body.light-theme div[style*="background: rgba(243, 156, 18, 0.1)"] {
     border-radius: 12px !important;
 }
 
-/* --- 26. Зеленое сукно для игр в светлой теме --- */
-body.light-theme #gameArea {
+/* --- 26. Зеленое сукно только для окон анимации в светлой теме --- */
+body.light-theme .game-display,
+body.light-theme .dice-container,
+body.light-theme .bj-table {
     background: radial-gradient(circle at center, #1b5e20 0%, #0a3d13 100%) !important;
-    padding: 30px;
-    border-radius: 16px;
-    border: 4px solid #388e3c !important;
-    box-shadow: inset 0 0 40px rgba(0,0,0,0.5), 0 10px 25px rgba(0,0,0,0.2) !important;
+    border: 4px solid #2e7d32 !important;
+    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.6), 0 8px 25px rgba(0, 0, 0, 0.2) !important;
+    border-radius: 16px !important;
+    padding: 30px !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 150px;
+    margin: 1rem auto;
+}
+
+body.light-theme .game-anim-text,
+body.light-theme .game-anim-huge {
     color: #ffffff !important;
     -webkit-text-fill-color: #ffffff !important;
-    margin-bottom: 2rem;
+    text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.8) !important;
 }
 
-body.light-theme #gameArea h2,
-body.light-theme #gameArea h3,
-body.light-theme #gameArea label,
-body.light-theme #gameArea p,
-body.light-theme #gameArea .probability-info,
-body.light-theme #gameArea .formula-content {
-    color: #ffffff !important;
-    -webkit-text-fill-color: #ffffff !important;
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.6) !important;
+/* Восстанавливаем светлый фон для карточек результатов и формул (возвращаем к исходному) */
+body.light-theme .result-message {
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-weight: 600;
+    margin-top: 15px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important;
 }
 
-body.light-theme #gameArea input[type="number"],
-body.light-theme #gameArea input[type="text"],
-body.light-theme #gameArea select {
-    background: #ffffff !important;
-    color: #1a252f !important;
-    -webkit-text-fill-color: #1a252f !important;
-    border: 2px solid #2e7d32 !important;
-    text-shadow: none !important;
-}
-
-body.light-theme #gameArea .game-display {
-    background: rgba(0, 0, 0, 0.45) !important;
-    border: 2px solid #4ade80 !important;
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 4px 15px rgba(0,0,0,0.3) !important;
-}
-
-body.light-theme #gameArea .game-anim-text,
-body.light-theme #gameArea .game-anim-huge,
-body.light-theme #gameArea .result-message {
-    color: #ffffff !important;
-    -webkit-text-fill-color: #ffffff !important;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.4) !important;
-}
-
-body.light-theme #gameArea .result-message.win {
-    background: rgba(46, 125, 50, 0.9) !important;
-    border-color: #4ade80 !important;
-}
-
-body.light-theme #gameArea .result-message.lose {
-    background: rgba(183, 28, 28, 0.9) !important;
-    border-color: #ef4444 !important;
-}
-
-body.light-theme #gameArea .beautiful-formula {
-    background: rgba(255, 255, 255, 0.1) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-}
-body.light-theme #gameArea .beautiful-formula .formula-title {
-    color: #bbf7d0 !important;
-    -webkit-text-fill-color: #bbf7d0 !important;
-}
-
-body.light-theme #gameArea .statistics {
-    background: rgba(0, 0, 0, 0.3) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-}
-body.light-theme #gameArea .statistics .stat-label {
-    color: #e2e8f0 !important;
-    -webkit-text-fill-color: #e2e8f0 !important;
-}
-body.light-theme #gameArea .statistics .stat-value {
-    color: #4ade80 !important;
-    -webkit-text-fill-color: #4ade80 !important;
-}
-
-body.light-theme #gameArea .bj-table {
-    background: rgba(0, 0, 0, 0.2) !important;
-    border: 2px solid rgba(255,255,255,0.2) !important;
-}
-
-body.light-theme #gameArea .dice-val {
+body.light-theme .dice-val {
     background: #ffffff !important;
     color: #0f172a !important;
     -webkit-text-fill-color: #0f172a !important;
     border: 2px solid #000000 !important;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* --- 27. Рамки для плашек баланса и результата (под их цвет) во всех играх --- */
+
+/* Темная тема (по умолчанию) */
+div[style*="background: rgba(243, 156, 18"] {
+    border: 2px solid #f39c12 !important;
+}
+
+.result-message {
+    border: 2px solid #34495e !important;
+    /* Нейтральная рамка если нет класса win/lose */
+}
+
+.result-message.win {
+    border: 2px solid #2ecc71 !important;
+}
+
+.result-message.lose {
+    border: 2px solid #e74c3c !important;
+}
+
+.result-message.draw {
+    border: 2px solid #f1c40f !important;
+}
+
+/* Светлая тема */
+body.light-theme div[style*="background: rgba(243, 156, 18"] {
+    border: 2px solid #f59e0b !important;
+}
+
+body.light-theme .result-message {
+    border: 2px solid #cbd5e1 !important;
+    /* Усиливаем стандартную рамку чтобы не сливалась */
+}
+
+body.light-theme .result-message.win {
+    border: 2px solid #4ade80 !important;
+}
+
+body.light-theme .result-message.lose {
+    border: 2px solid #ef4444 !important;
+}
+
+body.light-theme .result-message.draw {
+    border: 2px solid #facc15 !important;
+}
+
+/* --- 28. Ярко-красный цвет для критичных элементов анимации (VS, Вы, Дилер, Суммы карт) --- */
+.rps-display>div:nth-child(2),
+.bj-hand-container>div:first-child,
+#player-sum,
+#dealer-sum {
+    color: #ff0000 !important;
+    -webkit-text-fill-color: #ff0000 !important;
+    text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.9) !important;
+    font-weight: 900 !important;
 }

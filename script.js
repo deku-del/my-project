@@ -1192,10 +1192,11 @@ function playRoulette(color) {
     const interval = setInterval(() => {
         const tempNum = Math.floor(Math.random() * 37);
         const isLight = document.body.classList.contains('light-theme');
-        const blackCol = isLight ? '#1a252f' : '#bdc3c7';
-        const tempColor = tempNum === 0 ? '#2ecc71' : (tempNum % 2 === 0 ? blackCol : '#e74c3c');
+        // На зеленом сукне темные цвета плохо видно, используем яркий белый для "черных" цифр в светлой теме
+        const blackCol = isLight ? '#ffffff' : '#bdc3c7';
+        const tempColor = tempNum === 0 ? '#4ade80' : (tempNum % 2 === 0 ? blackCol : '#f87171');
 
-        animDisplay.innerHTML = `<span style="color: ${tempColor} !important; font-size: 3rem; display: inline-block; transform: scale(${1 + Math.random() * 0.2}); opacity: 0.8;">${tempNum}</span>`;
+        animDisplay.innerHTML = `<span style="color: ${tempColor} !important; font-size: 3rem; display: inline-block; transform: scale(${1 + Math.random() * 0.2}); opacity: 0.9;">${tempNum}</span>`;
         spins++;
 
         if (spins >= maxSpins) {
@@ -1907,17 +1908,17 @@ function createBlackjackGame() {
 
         <div id="bj-display" class="bj-table">
             <div class="bj-hand-container">
-                <div style="margin-bottom: 10px; color: #f39c12; font-weight: bold;">👤 ВЫ</div>
+                <div style="margin-bottom: 10px; color: #facc15; font-weight: bold; text-shadow: 1px 1px 3px rgba(0,0,0,0.8);">👤 ВЫ</div>
                 <div id="player-cards" class="bj-cards-area"></div>
-                <div id="player-sum" style="margin-top: 5px; font-weight: bold; font-size: 1.2rem;">0</div>
+                <div id="player-sum" style="margin-top: 5px; font-weight: bold; font-size: 1.2rem; color: #ffffff !important; text-shadow: 1px 1px 3px rgba(0,0,0,0.8);">0</div>
             </div>
             
             <div style="width: 2px; background: rgba(255,255,255,0.1);"></div>
 
             <div class="bj-hand-container">
-                <div style="margin-bottom: 10px; color: #e74c3c; font-weight: bold;">🎰 ДИЛЕР</div>
+                <div style="margin-bottom: 10px; color: #facc15; font-weight: bold; text-shadow: 1px 1px 3px rgba(0,0,0,0.8);">🎰 ДИЛЕР</div>
                 <div id="dealer-cards" class="bj-cards-area"></div>
-                <div id="dealer-sum" style="margin-top: 5px; font-weight: bold; font-size: 1.2rem;">0</div>
+                <div id="dealer-sum" style="margin-top: 5px; font-weight: bold; font-size: 1.2rem; color: #ffffff !important; text-shadow: 1px 1px 3px rgba(0,0,0,0.8);">0</div>
             </div>
         </div>
 
@@ -2262,7 +2263,7 @@ function createRPSGame() {
 
         <div class="game-display rps-display">
             <div id="player-choice" class="rps-choice">❓</div>
-            <div style="font-size: 3rem; color: #e94560;">VS</div>
+            <div style="font-size: 3rem; color: #facc15; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">VS</div>
             <div id="ai-choice" class="rps-choice">❓</div>
         </div>
 
