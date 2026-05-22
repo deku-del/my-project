@@ -1134,14 +1134,21 @@ p {
     box-shadow: 0 0 15px rgba(243, 156, 18, 0.3);
 }
 
+.table-scroll-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 20px 0;
+    border-radius: 8px;
+}
+
 .theory-table {
     width: 100%;
     border-collapse: collapse;
-    margin: 20px 0;
     background: rgba(0, 0, 0, 0.2);
     animation: fadeIn 0.8s ease;
-    overflow-x: auto;
     display: table;
+    min-width: 500px;
 }
 
 .theory-table thead {
@@ -1353,26 +1360,29 @@ li:hover {
     }
 
     .nav-menu {
-        display: none;
+        display: flex;
         flex-direction: column;
         flex-wrap: nowrap;
         width: 100%;
+        max-height: 0;
+        opacity: 0;
+        visibility: hidden;
+        overflow: hidden;
+        padding-bottom: 0;
+        background: #0f1619;
+        transition: max-height 0.3s ease, opacity 0.3s ease, visibility 0.3s ease, padding 0.3s ease;
     }
 
     .nav-menu.active {
-        display: flex;
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        background: #0f1619;
+        position: relative;
         max-height: calc(100vh - 60px);
+        opacity: 1;
+        visibility: visible;
         overflow-y: auto;
         z-index: 2000;
-        padding-bottom: 80px;
-        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+        padding-bottom: 10px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
         border-bottom: 2px solid #e94560;
-        animation: slideDown 0.3s ease;
     }
 
     .nav-btn {
@@ -1420,6 +1430,11 @@ li:hover {
         margin-left: 0;
         border-radius: 0;
         border-top: 1px solid rgba(255, 255, 255, 0.05);
+        position: sticky;
+        bottom: 0;
+        background: inherit;
+        z-index: 10;
+        margin-top: auto;
     }
 
     /* Container & Layout */
@@ -1468,12 +1483,16 @@ li:hover {
         padding: 1.5rem;
     }
 
-    /* Tables — allow horizontal scrolling */
-    .theory-table {
-        font-size: 0.88rem;
-        display: block;
+    /* Tables — allow horizontal scrolling via wrapper */
+    .table-scroll-wrapper {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+        margin: 15px 0;
+    }
+
+    .theory-table {
+        font-size: 0.88rem;
+        min-width: 450px;
     }
 
     .theory-table th,
@@ -1947,7 +1966,8 @@ html {
     /* Standard Green */
     color: white;
     padding: 1rem 2rem;
-    border-radius: 8px; /* Прямоугольная форма */
+    border-radius: 8px;
+    /* Прямоугольная форма */
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     z-index: 4000;
     max-width: 90vw;
@@ -3675,6 +3695,11 @@ body.light-theme nav {
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     border-bottom: 1px solid rgba(66, 165, 245, 0.2);
     box-shadow: 0 4px 24px rgba(26, 54, 93, 0.04);
+}
+
+body.light-theme .nav-menu {
+    background: rgba(255, 255, 255, 0.95);
+    border-bottom: 2px solid rgba(66, 165, 245, 0.5);
 }
 
 body.light-theme .nav-btn,

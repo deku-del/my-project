@@ -898,19 +898,25 @@ function toggleMenu() {
     }
 }
 
-// Закрытие меню при клике вне его
-document.addEventListener('click', (event) => {
-    const navMenu = document.getElementById('navMenu');
-    const toggleBtn = document.querySelector('.menu-toggle');
-    const nav = document.querySelector('nav');
-    
-    if (navMenu && navMenu.classList.contains('active') && nav && !nav.contains(event.target)) {
-        navMenu.classList.remove('active');
-        if (toggleBtn) {
-            toggleBtn.textContent = '☰ Меню';
+let touchStartY = 0;
+let touchEndY = 0;
+
+document.addEventListener('touchstart', e => {
+    touchStartY = e.changedTouches[0].screenY;
+}, { passive: true });
+
+document.addEventListener('touchend', e => {
+    touchEndY = e.changedTouches[0].screenY;
+    if (touchStartY - touchEndY > 48) {
+        const navMenu = document.getElementById('navMenu');
+        const toggleBtn = document.querySelector('.menu-toggle');
+        // Плавное скрытие через снятие класса (CSS transition отработает)
+        if (navMenu && navMenu.classList.contains('active')) {
+            navMenu.classList.remove('active');
+            if (toggleBtn) toggleBtn.textContent = '☰ Меню';
         }
     }
-});
+}, { passive: true });
 
 // ===== ОТКРЫТИЕ ИГРЫ =====
 function openGame(game) {
