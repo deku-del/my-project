@@ -1,3 +1,172 @@
+/* =============================================================
+   ПЛАВНЫЕ ПЕРЕХОДЫ — ТЕМА, ВКЛАДКИ, МОДАЛКИ
+   ============================================================= */
+
+/* Глобальный переход при смене темы — все панели */
+body,
+header,
+nav,
+.game-card,
+.modal-content,
+.content-block,
+.probability-info,
+.bet-history-panel,
+.calc-loss-side,
+.calc-item,
+.calc-dynamic-section,
+.calc-ironic-caption,
+.betting-glass-card,
+.odds-card,
+.betting-selected-info,
+.betting-amount-input,
+.beautiful-formula,
+.nav-dropdown-content,
+.input-group input,
+.input-group select,
+table,
+th,
+td,
+tr {
+    transition:
+        background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+        color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+        border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+        box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Текстовые узлы тоже плавно меняют цвет */
+h1,
+h2,
+h3,
+h4,
+p,
+span,
+li,
+label,
+a,
+.tagline,
+.nav-btn,
+.nav-dropbtn,
+.stat-label,
+.bh-game,
+.bh-balance {
+    transition: color 0.4s ease, -webkit-text-fill-color 0.4s ease;
+}
+
+/* Секции — плавное появление/скрытие (fade + slide) */
+.section {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+        transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: opacity, transform;
+}
+
+.section.active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.section.section-exiting {
+    opacity: 0;
+    transform: translateY(-12px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.section.section-entering {
+    animation: none !important;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Вкладки деталей (.tab-content) — плавное переключение */
+.tab-content {
+    display: none;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.tab-content.active {
+    display: block;
+    animation: tabFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes tabFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Домашние подвкладки (.home-subtab) */
+.home-subtab {
+    display: none;
+    opacity: 0;
+}
+
+.home-subtab.active {
+    display: block;
+    animation: tabFadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Модальное окно — мягкое появление */
+.modal {
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal-content {
+    transition:
+        transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+        opacity 0.35s ease,
+        background 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+        box-shadow 0.4s ease,
+        border-color 0.4s ease;
+    will-change: transform, opacity;
+}
+
+/* Карточки игр — hover с плавным подъёмом */
+.game-card {
+    transition:
+        transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+        box-shadow 0.35s ease,
+        border-color 0.35s ease,
+        background 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+}
+
+/* Кнопки */
+button,
+.nav-btn,
+.nav-dropbtn,
+.play-btn,
+.btn-play,
+.btn-reset {
+    transition:
+        transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+        box-shadow 0.2s ease,
+        background 0.3s ease,
+        opacity 0.2s ease;
+}
+
+/* Результат игры — плавное появление */
+.result-message {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Статистика */
+.statistics {
+    transition: opacity 0.4s ease, max-height 0.4s ease;
+}
+
+/* =============================================================
+   КОНЕЦ БЛОКА ПЛАВНЫХ ПЕРЕХОДОВ
+   ============================================================= */
 * {
     margin: 0;
     padding: 0;
@@ -12,11 +181,49 @@ button {
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    background-color: #1a1a2e;
+    /* Fallback base */
     color: #ecf0f1;
     line-height: 1.6;
     min-height: 100vh;
     animation: fadeInBody 1s ease;
+    position: relative;
+    z-index: 0;
+}
+
+/* Pseudo-elements for buttery smooth theme crossfading without CPU spikes */
+body::before,
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+    transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+}
+
+body::before {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    opacity: 1;
+}
+
+body.light-theme::before {
+    opacity: 0;
+}
+
+body::after {
+    background:
+        radial-gradient(ellipse at 20% 10%, rgba(135, 206, 250, 0.4) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 90%, rgba(66, 165, 245, 0.25) 0%, transparent 60%),
+        linear-gradient(145deg, #f0f8ff 0%, #e3f2fd 50%, #e1f5fe 100%);
+    opacity: 0;
+}
+
+body.light-theme::after {
+    opacity: 1;
 }
 
 @keyframes fadeInBody {
@@ -244,8 +451,15 @@ nav {
 }
 
 @keyframes slideDownFade {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .nav-dropdown-content .nav-btn {
@@ -256,6 +470,7 @@ nav {
     padding: 1rem 1.5rem;
     min-width: auto;
 }
+
 .nav-dropdown-content .nav-btn:last-child {
     border-bottom: none;
 }
@@ -1146,6 +1361,8 @@ li:hover {
     .nav-menu.active {
         display: flex;
         animation: slideDown 0.3s ease;
+        max-height: 80vh;
+        overflow-y: auto;
     }
 
     .nav-btn {
@@ -1547,6 +1764,7 @@ li:hover {
 
 /* ---------- Touch device improvements ---------- */
 @media (hover: none) and (pointer: coarse) {
+
     .nav-btn,
     .nav-dropbtn {
         min-height: 44px;
@@ -2893,6 +3111,12 @@ html {
     letter-spacing: 0.3px;
 }
 
+#betting {
+    overflow-x: hidden;
+    width: 100%;
+    box-sizing: border-box;
+}
+
 /* Betting Responsive */
 @media (max-width: 768px) {
     .betting-glass-card {
@@ -3013,12 +3237,32 @@ html {
     font-size: 1.1rem;
 }
 
-.bh-win { color: #2ecc71; border-left: 3px solid #2ecc71; }
-.bh-lose { color: #e74c3c; border-left: 3px solid #e74c3c; }
-.bh-draw { color: #f1c40f; border-left: 3px solid #f1c40f; }
+.bh-win {
+    color: #2ecc71;
+    border-left: 3px solid #2ecc71;
+}
 
-.bh-total-win { color: #f39c12; border-left: 3px solid #f39c12; margin-left: auto; }
-.bh-total-lose { color: #e74c3c; border-left: 3px solid #e74c3c; margin-left: auto; }
+.bh-lose {
+    color: #e74c3c;
+    border-left: 3px solid #e74c3c;
+}
+
+.bh-draw {
+    color: #f1c40f;
+    border-left: 3px solid #f1c40f;
+}
+
+.bh-total-win {
+    color: #f39c12;
+    border-left: 3px solid #f39c12;
+    margin-left: auto;
+}
+
+.bh-total-lose {
+    color: #e74c3c;
+    border-left: 3px solid #e74c3c;
+    margin-left: auto;
+}
 
 .bh-list {
     max-height: 400px;
@@ -3032,10 +3276,12 @@ html {
 .bh-list::-webkit-scrollbar {
     width: 6px;
 }
+
 .bh-list::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.05);
     border-radius: 10px;
 }
+
 .bh-list::-webkit-scrollbar-thumb {
     background: rgba(233, 69, 96, 0.5);
     border-radius: 10px;
@@ -3051,30 +3297,66 @@ html {
     transition: transform 0.2s, background 0.2s;
     animation: fadeInSection 0.4s ease forwards;
 }
+
 .bh-item:hover {
     transform: translateX(5px);
     background: rgba(255, 255, 255, 0.05);
 }
 
-.bh-item-win { border-left: 3px solid #2ecc71; }
-.bh-item-lose { border-left: 3px solid #e74c3c; }
-.bh-item-draw { border-left: 3px solid #f1c40f; }
+.bh-item-win {
+    border-left: 3px solid #2ecc71;
+}
 
-.bh-icon { font-size: 1.2rem; margin-right: 0.5rem; }
-.bh-game { flex: 1; font-weight: bold; color: #ecf0f1; }
-.bh-amount { font-weight: bold; width: 80px; text-align: right; }
-.bh-balance { color: #bdc3c7; width: 100px; text-align: right; font-size: 0.9rem; }
+.bh-item-lose {
+    border-left: 3px solid #e74c3c;
+}
 
-.bh-item-win .bh-amount { color: #2ecc71; }
-.bh-item-lose .bh-amount { color: #e74c3c; }
-.bh-item-draw .bh-amount { color: #f1c40f; }
+.bh-item-draw {
+    border-left: 3px solid #f1c40f;
+}
+
+.bh-icon {
+    font-size: 1.2rem;
+    margin-right: 0.5rem;
+}
+
+.bh-game {
+    flex: 1;
+    font-weight: bold;
+    color: #ecf0f1;
+}
+
+.bh-amount {
+    font-weight: bold;
+    width: 80px;
+    text-align: right;
+}
+
+.bh-balance {
+    color: #bdc3c7;
+    width: 100px;
+    text-align: right;
+    font-size: 0.9rem;
+}
+
+.bh-item-win .bh-amount {
+    color: #2ecc71;
+}
+
+.bh-item-lose .bh-amount {
+    color: #e74c3c;
+}
+
+.bh-item-draw .bh-amount {
+    color: #f1c40f;
+}
 
 .bh-empty {
     text-align: center;
     color: #bdc3c7;
     padding: 2rem;
     font-style: italic;
-    background: rgba(0,0,0,0.1);
+    background: rgba(0, 0, 0, 0.1);
     border-radius: 10px;
 }
 
@@ -3118,6 +3400,7 @@ html {
     transition: color 0.5s ease;
     text-shadow: 0 0 20px rgba(46, 204, 113, 0.5);
 }
+
 .calc-loss-amount.loss-active {
     color: #e74c3c;
     text-shadow: 0 0 30px rgba(231, 76, 60, 0.6);
@@ -3125,15 +3408,20 @@ html {
 }
 
 @keyframes pulseLoss {
-    from { transform: scale(1); }
-    to { transform: scale(1.05); }
+    from {
+        transform: scale(1);
+    }
+
+    to {
+        transform: scale(1.05);
+    }
 }
 
 .calc-ironic-caption {
     font-size: 1.1rem;
     color: #ecf0f1;
     line-height: 1.6;
-    background: rgba(0,0,0,0.2);
+    background: rgba(0, 0, 0, 0.2);
     padding: 1rem;
     border-radius: 12px;
     border-left: 3px solid #f39c12;
@@ -3164,7 +3452,10 @@ html {
 .calc-item::before {
     content: '';
     position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background: linear-gradient(135deg, rgba(233, 69, 96, 0.1), transparent);
     opacity: calc(1.5 - var(--item-opacity));
     transition: opacity 0.5s;
@@ -3193,7 +3484,7 @@ html {
     font-size: 2rem;
     font-weight: bold;
     color: #e74c3c;
-    background: rgba(0,0,0,0.3);
+    background: rgba(0, 0, 0, 0.3);
     border-radius: 10px;
     padding: 0.2rem;
     margin-bottom: 0.5rem;
@@ -3235,6 +3526,7 @@ html {
     cursor: help;
     transition: transform 0.2s;
 }
+
 .calc-dyn-icon:hover {
     transform: scale(1.3) translateY(-5px);
 }
@@ -3249,98 +3541,169 @@ html {
     .calc-hero {
         flex-direction: column;
     }
+
     .calc-loss-side {
         flex: auto;
     }
+
     .bh-item {
         flex-direction: column;
         align-items: flex-start;
         gap: 0.5rem;
     }
-    .bh-game { width: 100%; }
-    .bh-amount, .bh-balance { width: 100%; text-align: left; margin-top: 0; }
-    
+
+    .bh-game {
+        width: 100%;
+    }
+
+    .bh-amount,
+    .bh-balance {
+        width: 100%;
+        text-align: left;
+        margin-top: 0;
+    }
+
     .calc-items-grid {
         grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     }
+
     .calc-loss-amount {
         font-size: clamp(2.5rem, 8vw, 4rem);
     }
-    
-    .betting-glass-card, .calc-loss-side, .nav-dropdown-content {
+
+    .betting-glass-card,
+    .calc-loss-side,
+    .nav-dropdown-content {
         backdrop-filter: blur(12px) !important;
         -webkit-backdrop-filter: blur(12px) !important;
     }
 }
 
 @media (hover: none) {
-    .nav-dropbtn:hover { background: transparent; transform: none; color: inherit; }
-    .nav-dropbtn:hover::before { width: 0; height: 0; }
-    .game-card:hover { transform: none; box-shadow: none; border-color: rgba(233, 69, 96, 0.3); }
-    .game-card:active { border-color: #e94560; }
-    .bet-type-card:hover { transform: none; }
+    .nav-dropbtn:hover {
+        background: transparent;
+        transform: none;
+        color: inherit;
+    }
+
+    .nav-dropbtn:hover::before {
+        width: 0;
+        height: 0;
+    }
+
+    .game-card:hover {
+        transform: none;
+        box-shadow: none;
+        border-color: rgba(233, 69, 96, 0.3);
+    }
+
+    .game-card:active {
+        border-color: #e94560;
+    }
+
+    .bet-type-card:hover {
+        transform: none;
+    }
 }
 
 /* ========================================
-   СВЕТЛАЯ ТЕМА (LIGHT THEME)
+   iOS 26 LIQUID GLASS — СВЕТЛАЯ ТЕМА
+   Единый дизайн: frosted glass panels, soft sky gradient, rose-red accent
    ======================================== */
+
 body.light-theme {
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    color: #2c3e50;
+    --glass-bg: rgba(255, 255, 255, 0.85);
+    --glass-bg-strong: rgba(255, 255, 255, 0.95);
+    --glass-border: rgba(66, 165, 245, 0.3);
+    --glass-border-subtle: rgba(66, 165, 245, 0.15);
+    --glass-shadow: 0 8px 32px rgba(26, 54, 93, 0.05), 0 2px 8px rgba(26, 54, 93, 0.03);
+    --glass-shadow-hover: 0 16px 48px rgba(26, 54, 93, 0.08), 0 4px 16px rgba(26, 54, 93, 0.04);
+    --glass-blur: blur(20px) saturate(180%);
+    --accent: #42A5F5;
+    --accent-soft: rgba(66, 165, 245, 0.12);
+    --accent2: #1E88E5;
+    --text-primary: #1A365D;
+    /* Deep navy text, no black */
+    --text-secondary: #2D3748;
+    /* Slate text */
+    --text-muted: #4A5568;
+    background-color: #f0f8ff;
+    /* AliceBlue base fallback */
+    color: #1A365D;
 }
 
 body.light-theme header {
-    background: linear-gradient(90deg, #ffffff 0%, #ecf0f1 100%);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid rgba(66, 165, 245, 0.2);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 8px 32px rgba(26, 54, 93, 0.04);
 }
 
 body.light-theme h1 {
-    background: linear-gradient(135deg, #e74c3c, #f39c12);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    background: linear-gradient(135deg, #1565C0 0%, #42A5F5 40%, #0097A7 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+    filter: drop-shadow(0 2px 8px rgba(66, 165, 245, 0.2));
 }
 
-body.light-theme .tagline, body.light-theme p {
-    color: #34495e;
+body.light-theme .tagline {
+    color: #2D3748 !important;
+}
+
+body.light-theme p {
+    color: #2D3748 !important;
 }
 
 body.light-theme nav {
-    background: #ffffff;
-    border-bottom: 2px solid #e74c3c;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid rgba(66, 165, 245, 0.2);
+    box-shadow: 0 4px 24px rgba(26, 54, 93, 0.04);
 }
 
-body.light-theme .nav-btn, body.light-theme .nav-dropbtn {
-    color: #7f8c8d;
+body.light-theme .nav-btn,
+body.light-theme .nav-dropbtn {
+    color: #2D3748 !important;
 }
 
-body.light-theme .nav-btn:hover, body.light-theme .nav-dropbtn:hover {
-    background: rgba(0, 0, 0, 0.05);
-    color: #e74c3c;
+body.light-theme .nav-btn:hover,
+body.light-theme .nav-dropbtn:hover {
+    background: rgba(66, 165, 245, 0.08) !important;
+    color: #1976D2 !important;
 }
 
 body.light-theme .nav-btn.active {
-    color: #c0392b;
-    background: rgba(0, 0, 0, 0.05);
-    border-bottom-color: #c0392b;
+    color: #1E88E5 !important;
+    background: rgba(30, 136, 229, 0.08) !important;
+    border-bottom-color: #1E88E5 !important;
 }
 
 body.light-theme .nav-dropdown-content {
-    background: rgba(255, 255, 255, 0.7);
-    border: 1px solid rgba(0,0,0,0.1);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border: 1px solid rgba(66, 165, 245, 0.25) !important;
+    box-shadow: 0 16px 48px rgba(26, 54, 93, 0.08) !important;
 }
 
 body.light-theme .nav-dropdown-content .nav-btn {
-    color: #2c3e50;
-    border-bottom: 1px solid rgba(0,0,0,0.05);
+    color: #1A365D !important;
+    border-bottom: 1px solid rgba(66, 165, 245, 0.15) !important;
 }
 
 body.light-theme .nav-balance-val {
-    color: #2c3e50;
+    color: #1A365D !important;
 }
 
-/* Theme Toggle Button Styles */
+body.light-theme .menu-toggle {
+    background: rgba(255, 255, 255, 0.8) !important;
+    color: #1976D2 !important;
+}
+
 .theme-toggle-btn {
     background: transparent;
     border: none;
@@ -3352,156 +3715,402 @@ body.light-theme .nav-balance-val {
     align-items: center;
     justify-content: center;
 }
+
 .theme-toggle-btn:hover {
     transform: scale(1.2) rotate(15deg);
 }
 
+body.light-theme h2 {
+    color: #1A365D !important;
+    -webkit-text-fill-color: #1A365D !important;
+    text-shadow: none !important;
+}
+
+body.light-theme h3 {
+    color: #1E88E5 !important;
+    -webkit-text-fill-color: #1E88E5 !important;
+    text-shadow: none !important;
+}
+
+body.light-theme h3:hover {
+    color: #1565C0 !important;
+    -webkit-text-fill-color: #1565C0 !important;
+}
+
+body.light-theme .content-block {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border: 1px solid rgba(66, 165, 245, 0.2) !important;
+    border-left: 4px solid #42A5F5 !important;
+    box-shadow: 0 8px 32px rgba(66, 165, 245, 0.08) !important;
+    color: #1A365D !important;
+}
+
+body.light-theme .probability-info {
+    background: rgba(66, 165, 245, 0.08) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(66, 165, 245, 0.2) !important;
+    border-left: 3px solid #42A5F5 !important;
+    color: #1976D2 !important;
+}
+
 body.light-theme .game-card {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(236, 240, 241, 0.9) 100%);
-    border-color: rgba(0,0,0,0.1);
-    color: #2c3e50;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border: 1px solid rgba(66, 165, 245, 0.15) !important;
+    box-shadow: 0 8px 32px rgba(66, 165, 245, 0.08) !important;
+    color: #1A365D !important;
 }
 
 body.light-theme .game-card:hover {
-    border-color: #3498db;
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+    border-color: rgba(66, 165, 245, 0.5) !important;
+    box-shadow: 0 16px 48px rgba(66, 165, 245, 0.15) !important;
+    background: #ffffff !important;
 }
 
-body.light-theme h2, body.light-theme h3 {
-    text-shadow: none;
+body.light-theme .modal-content {
+    background: rgba(255, 255, 255, 0.98) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border: 1px solid rgba(66, 165, 245, 0.3) !important;
+    box-shadow: 0 24px 80px rgba(66, 165, 245, 0.15) !important;
+    color: #1A365D !important;
 }
 
-body.light-theme .content-block, body.light-theme .probability-info {
-    background: rgba(255,255,255,0.8);
-    border-left-color: #3498db;
-    color: #2c3e50;
+body.light-theme .input-group label {
+    color: #1976D2 !important;
 }
 
-body.light-theme .content-block p,
-body.light-theme .content-block li,
-body.light-theme .content-block td,
-body.light-theme .content-block span,
-body.light-theme .content-block a,
-body.light-theme .game-card p,
-body.light-theme .game-card li,
-body.light-theme .game-card td,
-body.light-theme .game-card span,
-body.light-theme .game-card button,
-body.light-theme .game-card label,
-body.light-theme .modal-content p,
-body.light-theme .modal-content li,
-body.light-theme .modal-content span,
-body.light-theme .modal-content ul,
-body.light-theme .probability-info p,
-body.light-theme .probability-info li,
-body.light-theme .theory-table td,
-body.light-theme .theory-table th,
-body.light-theme .disclaimer-content *,
-body.light-theme .stat-label,
-body.light-theme .bh-empty,
-body.light-theme .bh-total-win,
-body.light-theme .bh-total-loss,
-body.light-theme .bh-total-draw,
-body.light-theme .calc-loss-amount {
-    color: #1a252f !important;
-    text-shadow: none !important;
+body.light-theme .input-group input,
+body.light-theme .input-group select {
+    background: #ffffff !important;
+    border: 1.5px solid rgba(66, 165, 245, 0.4) !important;
+    color: #1A365D !important;
+}
+
+body.light-theme .input-group input:focus,
+body.light-theme .input-group select:focus {
+    border-color: #1E88E5 !important;
+    box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.15) !important;
 }
 
 body.light-theme .formula,
 body.light-theme .formula * {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(236, 240, 241, 0.9) 100%) !important;
-    color: #c0392b !important; /* Dark red for formulas instead of orange */
-    border-color: rgba(0,0,0,0.1) !important;
-    box-shadow: inset 0 2px 10px rgba(0,0,0,0.05) !important;
+    background: #E3F2FD !important;
+    color: #0D47A1 !important;
+    -webkit-text-fill-color: #0D47A1 !important;
+    border-color: rgba(66, 165, 245, 0.3) !important;
+    box-shadow: inset 0 1px 4px rgba(66, 165, 245, 0.05) !important;
+    font-size: 1.05em !important;
 }
 
 body.light-theme .formula.explanation,
 body.light-theme .formula.explanation * {
-    background: rgba(255, 255, 255, 0.8) !important;
-    color: #2980b9 !important; /* Dark blue for explanation texts */
-    border-left-color: #3498db !important;
+    background: #E1F5FE !important;
+    color: #01579B !important;
+    -webkit-text-fill-color: #01579B !important;
+    border-left-color: #42A5F5 !important;
 }
 
 body.light-theme .formula-container {
-    color: #1a252f !important;
+    color: #1A365D !important;
 }
 
-body.light-theme .bet-history-panel, body.light-theme .calc-loss-side {
-    background: rgba(255, 255, 255, 0.75);
-    border-color: rgba(0,0,0,0.1);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+body.light-theme .bet-history-panel {
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border: 1px solid rgba(66, 165, 245, 0.2) !important;
+    box-shadow: 0 8px 32px rgba(66, 165, 245, 0.08) !important;
+}
+
+body.light-theme .calc-loss-side {
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border: 1px solid rgba(66, 165, 245, 0.2) !important;
+    box-shadow: 0 8px 32px rgba(66, 165, 245, 0.08) !important;
 }
 
 body.light-theme .bh-item {
-    background: rgba(0, 0, 0, 0.05);
+    background: rgba(227, 242, 253, 0.6) !important;
+    border-radius: 8px;
 }
-body.light-theme .bh-game { color: #2c3e50; }
-body.light-theme .bh-balance { color: #7f8c8d; }
+
+body.light-theme .bh-game {
+    color: #1A365D !important;
+}
+
+body.light-theme .bh-balance {
+    color: #4A5568 !important;
+}
+
+body.light-theme .bh-empty {
+    color: #4A5568 !important;
+}
+
+body.light-theme .stat-label {
+    color: #2D3748 !important;
+}
 
 body.light-theme .calc-item {
-    background: rgba(255, 255, 255, 0.7);
-    border-color: rgba(0,0,0,0.1);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(66, 165, 245, 0.2) !important;
+    box-shadow: 0 8px 32px rgba(66, 165, 245, 0.08) !important;
 }
-body.light-theme .calc-item-name { color: #1a252f; font-weight: 800; }
-body.light-theme .calc-item-comment { color: #34495e; font-weight: 500; }
-body.light-theme .calc-item-price { color: #d35400; font-weight: bold; }
-body.light-theme .calc-item-count { 
-    color: #c0392b; 
-    background: rgba(231, 76, 60, 0.1); 
+
+body.light-theme .calc-item-name {
+    color: #1A365D !important;
+    font-weight: 800;
 }
+
+body.light-theme .calc-item-comment {
+    color: #4A5568 !important;
+    font-weight: 500;
+}
+
+body.light-theme .calc-item-price {
+    color: #1976D2 !important;
+    font-weight: bold;
+}
+
+body.light-theme .calc-item-count {
+    color: #0D47A1 !important;
+    background: rgba(66, 165, 245, 0.15) !important;
+}
+
 body.light-theme .calc-ironic-caption {
-    background: rgba(255, 255, 255, 0.9);
-    border-left-color: #3498db;
-    color: #2c3e50;
+    background: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(66, 165, 245, 0.2) !important;
+    border-left-color: #42A5F5 !important;
+    color: #1A365D !important;
 }
-body.light-theme .calc-loss-label { color: #34495e; }
+
+body.light-theme .calc-loss-label {
+    color: #2D3748 !important;
+}
+
+body.light-theme .calc-loss-amount {
+    color: #1E88E5 !important;
+}
 
 body.light-theme .calc-dynamic-section {
-    background: rgba(255, 255, 255, 0.75);
-    border-color: rgba(0,0,0,0.1);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    border: 1px dashed rgba(66, 165, 245, 0.4) !important;
+    box-shadow: 0 8px 32px rgba(66, 165, 245, 0.08) !important;
 }
 
 body.light-theme .calc-dyn-title {
-    color: #d35400; /* Darker orange for better contrast */
+    color: #1976D2 !important;
     font-weight: 700;
 }
-body.light-theme table {
-    background: rgba(255, 255, 255, 0.8);
-    color: #2c3e50;
-}
-body.light-theme th {
-    background: linear-gradient(135deg, #3498db, #2980b9);
-    color: white;
-}
-body.light-theme td {
-    border-color: rgba(0, 0, 0, 0.1);
-}
-body.light-theme tr:nth-child(even) {
-    background: rgba(236, 240, 241, 0.5);
+
+body.light-theme .calc-dyn-empty {
+    color: #0288D1 !important;
 }
 
-body.light-theme .modal-content {
-    background: #ecf0f1;
-    border-color: #3498db;
-    color: #2c3e50;
-}
-body.light-theme .input-group label { color: #2980b9; }
-body.light-theme .input-group input, body.light-theme .input-group select {
-    background: #ffffff;
-    border-color: #bdc3c7;
-    color: #2c3e50;
-}
-body.light-theme .menu-toggle {
-    background: transparent;
-    color: #e74c3c;
+body.light-theme table,
+body.light-theme .theory-table {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    color: #1e293b !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04) !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    border: 2px solid #1e293b !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
 }
 
-/* ========================================
-   HEAVY TEXT VISIBILITY OVERRIDES
-   ======================================== */
+body.light-theme th,
+body.light-theme .theory-table th {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+    font-weight: 700 !important;
+    font-size: 0.85rem !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+    padding: 16px !important;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: 1px solid #cbd5e1 !important;
+    border-bottom: 2px solid #94a3b8 !important;
+}
+
+body.light-theme th:last-child {
+    border-right: none !important;
+    border-top-right-radius: 12px !important;
+}
+
+body.light-theme th:first-child {
+    border-top-left-radius: 12px !important;
+}
+
+body.light-theme td,
+body.light-theme .theory-table td,
+body.light-theme td *,
+body.light-theme .theory-table td * {
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+}
+
+body.light-theme td,
+body.light-theme .theory-table td {
+    padding: 14px 16px !important;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: 1px solid #e2e8f0 !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    font-size: 0.95rem !important;
+    font-weight: 500 !important;
+    transition: background 0.2s ease !important;
+}
+
+body.light-theme tr:last-child td {
+    border-bottom: none !important;
+}
+
+body.light-theme td:last-child,
+body.light-theme .theory-table td:last-child {
+    border-right: none !important;
+}
+
+body.light-theme tr:nth-child(even),
+body.light-theme .theory-table tr:nth-child(even) {
+    background: #f8fafc !important;
+}
+
+body.light-theme tr:nth-child(odd),
+body.light-theme .theory-table tr:nth-child(odd) {
+    background: transparent !important;
+}
+
+body.light-theme tr:hover,
+body.light-theme .theory-table tr:hover {
+    background: #f1f5f9 !important;
+    transform: none !important;
+}
+
+body.light-theme .betting-glass-card {
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border: 1px solid rgba(66, 165, 245, 0.2) !important;
+    box-shadow: 0 8px 32px rgba(66, 165, 245, 0.08) !important;
+}
+
+body.light-theme .odds-card {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(66, 165, 245, 0.15) !important;
+}
+
+body.light-theme .betting-selected-info {
+    background: #E3F2FD !important;
+    backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(66, 165, 245, 0.3) !important;
+    color: #0D47A1 !important;
+}
+
+body.light-theme .betting-amount-input {
+    background: #ffffff !important;
+    border: 1.5px solid rgba(66, 165, 245, 0.4) !important;
+    color: #1A365D !important;
+}
+
+body.light-theme .betting-amount-input:focus {
+    border-color: #1E88E5 !important;
+    box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.15) !important;
+}
+
+body.light-theme .betting-slider-labels span {
+    color: #2D3748 !important;
+}
+
+body.light-theme input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #42A5F5, #1565C0) !important;
+    outline: none;
+}
+
+body.light-theme input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #ffffff !important;
+    border: 2px solid rgba(66, 165, 245, 0.8) !important;
+    box-shadow: 0 2px 10px rgba(66, 165, 245, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+    cursor: pointer;
+    margin-top: -6px;
+}
+
+body.light-theme input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #ffffff !important;
+    border: 2px solid rgba(66, 165, 245, 0.8) !important;
+    box-shadow: 0 2px 10px rgba(66, 165, 245, 0.3) !important;
+    cursor: pointer;
+}
+
+body.light-theme input[type="range"]::-webkit-slider-runnable-track {
+    background: linear-gradient(90deg, #42A5F5, #1565C0) !important;
+    border-radius: 4px;
+    height: 6px;
+}
+
+body.light-theme input[type="range"]::-moz-range-track {
+    background: linear-gradient(90deg, #42A5F5, #1565C0) !important;
+    border-radius: 4px;
+    height: 6px;
+}
+
+body.light-theme ::-webkit-scrollbar-track {
+    background: rgba(227, 242, 253, 0.5);
+}
+
+body.light-theme ::-webkit-scrollbar-thumb {
+    background-color: rgba(144, 202, 249, 0.8);
+    border: 3px solid rgba(227, 242, 253, 0.5);
+    border-radius: 10px;
+}
+
+body.light-theme ::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(66, 165, 245, 0.9);
+}
+
+body.light-theme ::-webkit-scrollbar-button:single-button {
+    background-color: rgba(227, 242, 253, 0.5);
+}
+
+body.light-theme ::-webkit-scrollbar-button:single-button:vertical:decrement {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%2364B5F6'><path d='M8 3.5l5 6H3z'/></svg>");
+    border-top-right-radius: 20px;
+}
+
+body.light-theme ::-webkit-scrollbar-button:single-button:vertical:increment {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%2364B5F6'><path d='M8 12.5l-5-6h10z'/></svg>");
+    border-bottom-right-radius: 20px;
+}
+
+/* ======================================================
+   МАССОВЫЕ ПЕРЕОПРЕДЕЛЕНИЯ (ТОЛЬКО ДЛЯ СВЕТЛОЙ ТЕМЫ)
+   ====================================================== */
 body.light-theme .content-block *,
 body.light-theme .game-card *,
 body.light-theme .modal-content *,
@@ -3513,109 +4122,255 @@ body.light-theme ol *,
 body.light-theme p,
 body.light-theme li,
 body.light-theme span {
-    color: #1a252f !important;
+    color: #1A365D !important;
     text-shadow: none !important;
-    -webkit-text-fill-color: initial !important; /* Prevents transparent overlaps */
+    -webkit-text-fill-color: initial !important;
 }
 
-/* Re-protect header gradients and formula styles from the wildcard */
-body.light-theme h1, 
-body.light-theme h2, 
+body.light-theme h1,
+body.light-theme h2,
 body.light-theme h3 {
     text-shadow: none !important;
 }
 
 body.light-theme h1 {
-    background: linear-gradient(135deg, #e74c3c, #f39c12) !important;
+    background: linear-gradient(135deg, #1565C0 0%, #42A5F5 40%, #0097A7 100%) !important;
     -webkit-background-clip: text !important;
     background-clip: text !important;
     -webkit-text-fill-color: transparent !important;
     color: transparent !important;
 }
 
+body.light-theme h2 {
+    color: #1A365D !important;
+    -webkit-text-fill-color: #1A365D !important;
+}
+
+body.light-theme h3 {
+    color: #1976D2 !important;
+    -webkit-text-fill-color: #1976D2 !important;
+}
+
 body.light-theme .formula,
 body.light-theme .formula * {
-    background: linear-gradient(135deg, rgba(236, 240, 241, 0.8), rgba(255, 255, 255, 0.9)) !important;
-    color: #c0392b !important;
+    background: #E3F2FD !important;
+    color: #0D47A1 !important;
+    -webkit-text-fill-color: #0D47A1 !important;
 }
 
 body.light-theme .formula.explanation,
 body.light-theme .formula.explanation * {
-    color: #2980b9 !important;
+    color: #01579B !important;
+    -webkit-text-fill-color: #01579B !important;
+}
+
+/* ОСОБЫЙ ФОКУС: КРАСИВЫЕ МАТЕМАТИЧЕСКИЕ ФОРМУЛЫ В СВЕТЛОЙ ТЕМЕ */
+body.light-theme .beautiful-formula {
+    background: #E3F2FD !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border: 1px solid rgba(66, 165, 245, 0.4) !important;
+    border-left: 4px solid #42A5F5 !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.9) !important;
+    box-shadow: 0 8px 32px rgba(66, 165, 245, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+    color: #1A365D !important;
+}
+
+body.light-theme .beautiful-formula:hover {
+    background: #E1F5FE !important;
+    box-shadow: 0 16px 48px rgba(66, 165, 245, 0.2) !important;
+}
+
+body.light-theme .beautiful-formula .formula-title {
+    color: #1565C0 !important;
+    -webkit-text-fill-color: #1565C0 !important;
+}
+
+body.light-theme .beautiful-formula .formula-content {
+    color: #0D47A1 !important;
+    -webkit-text-fill-color: #0D47A1 !important;
+    font-weight: 700;
+    font-size: 1.15rem;
+    /* Слегка увеличен (на ~10%) для идеальной читаемости формул */
 }
 
 body.light-theme button {
-    color: #16213e !important;
+    color: #ffffff !important;
+    background: linear-gradient(135deg, #5a9de6, #7ab8f0) !important;
+    border: none;
+    box-shadow: 0 2px 8px rgba(90, 157, 230, 0.18) !important;
 }
 
-/* Slider Overrides for Light Theme */
-body.light-theme input[type="range"] {
-    -webkit-appearance: none;
-    appearance: none;
-    height: 6px;
-    border-radius: 4px;
-    background: linear-gradient(90deg, #3498db, #e74c3c) !important;
-    outline: none;
+body.light-theme button:hover {
+    background: linear-gradient(135deg, #4a8ed6, #6aabe8) !important;
+    box-shadow: 0 4px 14px rgba(74, 142, 214, 0.25) !important;
 }
 
-body.light-theme input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: #ffffff !important;
-    border: 3px solid #e74c3c !important;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
-    cursor: pointer;
-    margin-top: -6px;
+/* Вкладки Применение (Медицина, Метеорология, Логистика) — мягкие, не режущие глаза */
+body.light-theme .prob-tab-btn {
+    background: rgba(90, 157, 230, 0.12) !important;
+    color: #3d6ea8 !important;
+    box-shadow: none !important;
+    border: 1px solid rgba(90, 157, 230, 0.2) !important;
 }
 
-body.light-theme input[type="range"]::-moz-range-thumb {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: #ffffff !important;
-    border: 3px solid #e74c3c !important;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
-    cursor: pointer;
+body.light-theme .prob-tab-btn.active {
+    background: linear-gradient(135deg, #5a9de6, #7ab8f0) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 10px rgba(90, 157, 230, 0.25) !important;
+    border-color: transparent !important;
 }
 
-body.light-theme input[type="range"]::-webkit-slider-runnable-track {
-    background: linear-gradient(90deg, #3498db, #e74c3c) !important;
-    border-radius: 4px;
-    height: 6px;
+body.light-theme .prob-tab-btn:hover:not(.active) {
+    background: rgba(90, 157, 230, 0.2) !important;
+    color: #2c5d96 !important;
 }
 
-body.light-theme input[type="range"]::-moz-range-track {
-    background: linear-gradient(90deg, #3498db, #e74c3c) !important;
-    border-radius: 4px;
-    height: 6px;
+/* Панель баланса в навигации — frosted glass для светлой темы */
+body.light-theme .nav-balance-container {
+    background: rgba(255, 255, 255, 0.7) !important;
+    backdrop-filter: blur(12px) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(150%) !important;
+    border: 1px solid rgba(90, 157, 230, 0.2) !important;
+    box-shadow: 0 2px 8px rgba(90, 157, 230, 0.08) !important;
 }
 
-body.light-theme .betting-slider-labels span {
-    color: #1a252f !important;
+body.light-theme .nav-balance-val {
+    color: #2c5d96 !important;
+    text-shadow: none !important;
 }
 
-/* Betting Selected Info & Amount Input (Light Theme) */
-body.light-theme .betting-selected-info {
-    background: rgba(255, 255, 255, 0.85) !important;
-    border: 1px solid rgba(0,0,0,0.1) !important;
-    color: #1a252f !important;
+body.light-theme .nav-balance-reset {
+    background: none !important;
+    box-shadow: none !important;
 }
 
-body.light-theme .betting-amount-input {
-    background: #ffffff !important;
-    border: 2px solid #bdc3c7 !important;
-    color: #1a252f !important;
+/* Домашние вкладки — мягкие */
+body.light-theme .home-tab-btn {
+    background: rgba(90, 157, 230, 0.1) !important;
+    color: #3d6ea8 !important;
+    box-shadow: none !important;
+    border: 1px solid rgba(90, 157, 230, 0.15) !important;
 }
 
-body.light-theme .betting-amount-input:focus {
-    border-color: #3498db !important;
-    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2) !important;
+body.light-theme .home-tab-btn.active {
+    background: linear-gradient(135deg, #5a9de6, #7ab8f0) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 10px rgba(90, 157, 230, 0.25) !important;
+    border-color: transparent !important;
 }
 
-/* РОУЛЕТКА: ЦВЕТА ЧИСЕЛ */
+body.light-theme .home-tab-btn:hover:not(.active) {
+    background: rgba(90, 157, 230, 0.18) !important;
+    color: #2c5d96 !important;
+}
+
+/* Навигационные кнопки — не должны быть яркими */
+body.light-theme .nav-btn,
+body.light-theme .nav-dropbtn {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+body.light-theme .prob-tabs-header {
+    background: rgba(90, 157, 230, 0.06) !important;
+    border: 1px solid rgba(90, 157, 230, 0.12) !important;
+}
+
+body.light-theme .play-btn,
+body.light-theme .btn-play,
+body.light-theme .btn-reset,
+body.light-theme .btn-details,
+body.light-theme .nav-balance-reset {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
+
+
+/* ====== ROUND 2 FIXES ====== */
+
+/* 1. Убрать квадрат-фон под иконками 🌙/💳 в навигации (и при наведении!) */
+body.light-theme .theme-toggle-btn,
+body.light-theme .theme-toggle-btn:hover,
+body.light-theme .theme-toggle-btn:focus,
+body.light-theme .theme-toggle-btn:active,
+body.light-theme .nav-balance-reset,
+body.light-theme .nav-balance-reset:hover,
+body.light-theme .nav-balance-reset:focus,
+body.light-theme .nav-balance-reset:active,
+body.light-theme .nav-balance-icon {
+    background: none !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+/* 2. Дисклеймер — лучшая читаемость в светлой теме */
+body.light-theme .warning {
+    background: linear-gradient(135deg, #ef5350, #e53935) !important;
+    border: 2px solid #c62828 !important;
+    box-shadow: 0 4px 20px rgba(229, 57, 53, 0.25) !important;
+}
+
+body.light-theme .warning strong {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    font-size: 1.2rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+body.light-theme .warning p {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+/* 3. Вкладки игр (Правила, Описание, Как это работает, Теория, История) */
+body.light-theme .tab-btn {
+    background: rgba(90, 157, 230, 0.1) !important;
+    color: #3d6ea8 !important;
+    box-shadow: none !important;
+    border: 1px solid rgba(90, 157, 230, 0.18) !important;
+}
+
+body.light-theme .tab-btn.active {
+    background: linear-gradient(135deg, #5a9de6, #7ab8f0) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    box-shadow: 0 2px 10px rgba(90, 157, 230, 0.25) !important;
+    border-color: transparent !important;
+}
+
+body.light-theme .tab-btn:hover:not(.active) {
+    background: rgba(90, 157, 230, 0.18) !important;
+    color: #2c5d96 !important;
+}
+
+body.light-theme .tabs-header {
+    background: rgba(90, 157, 230, 0.06) !important;
+    border: 1px solid rgba(90, 157, 230, 0.12) !important;
+    border-radius: 10px;
+}
+
+/* 4-5. Результат рулетки — чёрное число читаемо в светлой теме */
+body.light-theme .roulette-result-val.val-black {
+    background: linear-gradient(135deg, #455a64, #37474f) !important;
+    border-color: #546e7a !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.15), 0 6px 20px rgba(69, 90, 100, 0.35) !important;
+}
+
+body.light-theme .roulette-result-val.val-red {
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.15), 0 6px 20px rgba(231, 76, 60, 0.35) !important;
+}
+
+body.light-theme .roulette-result-val.val-green {
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1), 0 6px 20px rgba(46, 204, 113, 0.3) !important;
+}
+
+/* РОУЛЕТКА: ЦВЕТА ЧИСЕЛ (Оставляем классические для рулетки: красное, черное, зеленое) */
 .roulette-result-val {
     display: inline-flex;
     justify-content: center;
@@ -3624,21 +4379,721 @@ body.light-theme .betting-amount-input:focus {
     height: 100px;
     border-radius: 16px;
     color: white !important;
-    text-shadow: 0px 2px 4px rgba(0,0,0,0.6);
-    box-shadow: inset 0px 0px 10px rgba(0,0,0,0.3), 0px 8px 25px rgba(0,0,0,0.5);
+    text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.6);
+    box-shadow: inset 0px 0px 10px rgba(0, 0, 0, 0.3), 0px 8px 25px rgba(0, 0, 0, 0.5);
     margin: 15px auto;
     font-size: 3rem;
     font-weight: bold;
 }
+
 .roulette-result-val.val-red {
     background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
     border: 3px solid #e74c3c;
 }
+
 .roulette-result-val.val-black {
     background: linear-gradient(135deg, #2c3e50, #1a252f) !important;
     border: 3px solid #34495e;
 }
+
 .roulette-result-val.val-green {
     background: linear-gradient(135deg, #2ecc71, #27ae60) !important;
     border: 3px solid #2ecc71;
-}
+}
+
+/* КРАСИВЫЕ ФОРМУЛЫ (LIQUID GLASS) */
+.beautiful-formula {
+    background: rgba(15, 52, 96, 0.4);
+    border-left: 4px solid #3498db;
+    border-radius: 10px;
+    padding: 1.2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.beautiful-formula:hover {
+    transform: translateY(-3px);
+    background: rgba(15, 52, 96, 0.6);
+    box-shadow: 0 12px 40px rgba(52, 152, 219, 0.2);
+}
+
+.beautiful-formula .formula-title {
+    color: #3498db;
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.beautiful-formula .formula-content {
+    color: #f39c12;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    word-break: break-all;
+}
+
+/* КРАСИВЫЙ ПОЛЗУНОК (SCROLLBAR) ВО ВСЕХ ОКНАХ И ИГРАХ */
+::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+}
+
+::-webkit-scrollbar-track {
+    background: #2b2b2b;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #737373;
+    border-radius: 10px;
+    border: 3px solid #2b2b2b;
+    background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #909090;
+}
+
+::-webkit-scrollbar-button:single-button {
+    background-color: #2b2b2b;
+    display: block;
+    height: 14px;
+    width: 14px;
+}
+
+::-webkit-scrollbar-button:single-button:vertical:decrement {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23888888'><path d='M8 3.5l5 6H3z'/></svg>");
+    background-size: 10px;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-top-right-radius: 20px;
+}
+
+::-webkit-scrollbar-button:single-button:vertical:decrement:hover {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23aaaaaa'><path d='M8 3.5l5 6H3z'/></svg>");
+}
+
+::-webkit-scrollbar-button:single-button:vertical:increment {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23888888'><path d='M8 12.5l-5-6h10z'/></svg>");
+    background-size: 10px;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-bottom-right-radius: 20px;
+}
+
+::-webkit-scrollbar-button:single-button:vertical:increment:hover {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23aaaaaa'><path d='M8 12.5l-5-6h10z'/></svg>");
+}
+
+body.light-theme ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+body.light-theme ::-webkit-scrollbar-thumb {
+    background-color: #c1c1c1;
+    border: 3px solid #f1f1f1;
+}
+
+body.light-theme ::-webkit-scrollbar-thumb:hover {
+    background-color: #a8a8a8;
+}
+
+body.light-theme ::-webkit-scrollbar-button:single-button {
+    background-color: #f1f1f1;
+}
+
+body.light-theme ::-webkit-scrollbar-button:single-button:vertical:decrement {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23777777'><path d='M8 3.5l5 6H3z'/></svg>");
+    border-top-right-radius: 20px;
+}
+
+body.light-theme ::-webkit-scrollbar-button:single-button:vertical:increment {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23777777'><path d='M8 12.5l-5-6h10z'/></svg>");
+    border-bottom-right-radius: 20px;
+}
+
+/* КАСТОМНЫЕ УВЕДОМЛЕНИЯ / TOAST NOTIFICATIONS */
+.custom-toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100px);
+    background: linear-gradient(135deg, rgba(233, 69, 96, 0.95), rgba(192, 57, 43, 0.95));
+    color: white;
+    padding: 16px 24px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    font-weight: 600;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    opacity: 0;
+    visibility: hidden;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease, visibility 0.4s;
+    max-width: 90vw;
+    text-align: center;
+}
+
+.custom-toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    visibility: visible;
+}
+
+/* =========================================================
+   ДОПОЛНИТЕЛЬНЫЕ ИСПРАВЛЕНИЯ СВЕТЛОЙ ТЕМЫ (ROUND 3)
+   ========================================================= */
+
+/* --- 1. Всплывающие уведомления (Рулетка, Слоты и пр.) --- */
+body.light-theme .result-message {
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-weight: 600;
+    margin-top: 15px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important;
+}
+
+body.light-theme .result-message.win {
+    background: #e8f5e9 !important;
+    /* Soft green */
+    color: #2e7d32 !important;
+    /* Dark green */
+    border: 1px solid #c8e6c9 !important;
+}
+
+body.light-theme .result-message.lose {
+    background: #ffebee !important;
+    /* Soft red */
+    color: #c62828 !important;
+    /* Dark red */
+    border: 1px solid #ffcdd2 !important;
+}
+
+/* --- 2. Футбольные уведомления --- */
+body.light-theme .betting-inline-notif {
+    border-radius: 8px;
+    padding: 12px;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important;
+}
+
+body.light-theme .betting-inline-notif.win {
+    background: #e8f5e9 !important;
+    color: #2e7d32 !important;
+    border: 1px solid #c8e6c9 !important;
+    text-shadow: none !important;
+}
+
+body.light-theme .betting-inline-notif.lose {
+    background: #ffebee !important;
+    color: #c62828 !important;
+    border: 1px solid #ffcdd2 !important;
+    text-shadow: none !important;
+}
+
+/* --- 3. История ставок и статистика --- */
+body.light-theme .bh-counter,
+body.light-theme .bh-total-win,
+body.light-theme .bh-total-lose {
+    background: #f8fafc !important;
+    color: #334155 !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03) !important;
+    font-weight: 600;
+}
+
+body.light-theme .bh-item-lose {
+    background: #fff5f5 !important;
+    border-left: 4px solid #fc8181 !important;
+}
+
+body.light-theme .bh-item-win {
+    background: #f0fff4 !important;
+    border-left: 4px solid #68d391 !important;
+}
+
+body.light-theme .bh-item-draw {
+    background: #fffff0 !important;
+    border-left: 4px solid #f6e05e !important;
+}
+
+/* --- 4. Развенчание мифов --- */
+body.light-theme .myth-item {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-left: 4px solid #ef4444 !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important;
+    border-radius: 8px !important;
+    color: #1a365d !important;
+}
+
+body.light-theme .myth-item h4 {
+    color: #b91c1c !important;
+}
+
+body.light-theme .myth-item strong {
+    color: #0d47a1 !important;
+}
+
+body.light-theme #myths p[style*="color: #ecf0f1"] {
+    color: #1a365d !important;
+}
+
+/* --- 5. Футбольная статистика --- */
+body.light-theme .football-stat-block {
+    background: #ffffff !important;
+    border-left: 4px solid #42a5f5 !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important;
+    border-radius: 8px !important;
+    color: #1a365d !important;
+}
+
+body.light-theme .football-stat-block strong {
+    color: #0d47a1 !important;
+}
+
+body.light-theme #football .content-block[style*="background"],
+body.light-theme #football div[style*="background"] {
+    background: #f8fafc !important;
+    border-left-color: #64b5f6 !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03) !important;
+}
+
+body.light-theme #football strong[style*="color"],
+body.light-theme #myths h3[style*="color"] {
+    color: #1976d2 !important;
+}
+
+/* =========================================================
+   ДОПОЛНИТЕЛЬНЫЕ ИСПРАВЛЕНИЯ СВЕТЛОЙ ТЕМЫ (ROUND 4)
+   ========================================================= */
+
+/* --- 1. Игровой дисплей (область с результатом игры) --- */
+body.light-theme .game-display {
+    background: rgba(255, 255, 255, 0.85) !important;
+    border: 1px solid rgba(66, 165, 245, 0.2) !important;
+    box-shadow: 0 4px 20px rgba(66, 165, 245, 0.08) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+}
+
+body.light-theme .game-anim-text,
+body.light-theme .game-anim-huge {
+    color: #1A365D !important;
+    -webkit-text-fill-color: #1A365D !important;
+    text-shadow: none !important;
+}
+
+/* --- 2. Блок статистики казино (баланс, ставки, победы, поражения, ROI) --- */
+body.light-theme .statistics {
+    background: rgba(255, 255, 255, 0.92) !important;
+    border: 1px solid rgba(66, 165, 245, 0.25) !important;
+    box-shadow: 0 4px 16px rgba(66, 165, 245, 0.08) !important;
+}
+
+body.light-theme .stat-value {
+    color: #1976D2 !important;
+    -webkit-text-fill-color: #1976D2 !important;
+    text-shadow: none !important;
+}
+
+body.light-theme .stat-row {
+    border-bottom-color: rgba(66, 165, 245, 0.15) !important;
+}
+
+body.light-theme .stat-row:hover {
+    background: rgba(66, 165, 245, 0.06) !important;
+}
+
+/* --- 3. Odds-display --- */
+body.light-theme .odds-display {
+    background: rgba(66, 165, 245, 0.08) !important;
+    border: 1px solid rgba(66, 165, 245, 0.25) !important;
+    color: #1976D2 !important;
+    box-shadow: none !important;
+    animation: none !important;
+}
+
+/* --- 4. Ничья в результатах --- */
+body.light-theme .result-message.draw {
+    background: #fffde7 !important;
+    color: #f57f17 !important;
+    border: 1px solid #fff9c4 !important;
+    border-left: 4px solid #fbc02d !important;
+}
+
+/* --- 5. Футбольный скорборд — читаемый в светлой теме --- */
+body.light-theme .betting-scoreboard {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid rgba(66, 165, 245, 0.2) !important;
+    box-shadow: 0 4px 20px rgba(66, 165, 245, 0.08) !important;
+    backdrop-filter: blur(12px) !important;
+}
+
+body.light-theme .betting-score-val {
+    color: #1A365D !important;
+    -webkit-text-fill-color: #1A365D !important;
+    text-shadow: none !important;
+}
+
+body.light-theme .betting-score-team {
+    color: #2D3748 !important;
+}
+
+body.light-theme .betting-score-divider {
+    color: #1976D2 !important;
+}
+
+/* --- 6. Заголовок матча --- */
+body.light-theme .betting-match-header {
+    background: rgba(255, 255, 255, 0.85) !important;
+    border: 1px solid rgba(66, 165, 245, 0.2) !important;
+    box-shadow: none !important;
+    backdrop-filter: blur(12px) !important;
+}
+
+body.light-theme .betting-team {
+    color: #1A365D !important;
+}
+
+body.light-theme .betting-vs {
+    color: #1976D2 !important;
+    text-shadow: none !important;
+}
+
+/* --- 7. Контейнер суммы ставки --- */
+body.light-theme .betting-amount-container {
+    background: rgba(255, 255, 255, 0.8) !important;
+    border: 1px solid rgba(66, 165, 245, 0.2) !important;
+}
+
+/* --- 8. Текст уведомлений ставок --- */
+body.light-theme #betting-inline-text {
+    color: #1A365D !important;
+    -webkit-text-fill-color: #1A365D !important;
+}
+
+body.light-theme .betting-notif-icon {
+    background: rgba(66, 165, 245, 0.1) !important;
+}
+
+/* --- 9. Odds-карточки: подписи, значения, вероятности --- */
+body.light-theme .odds-card-label {
+    color: #4A5568 !important;
+    -webkit-text-fill-color: #4A5568 !important;
+}
+
+body.light-theme .odds-card-value {
+    color: #1565C0 !important;
+    -webkit-text-fill-color: #1565C0 !important;
+    text-shadow: none !important;
+}
+
+body.light-theme .odds-card-prob {
+    color: #718096 !important;
+    -webkit-text-fill-color: #718096 !important;
+}
+
+body.light-theme .odds-card.selected {
+    background: rgba(30, 136, 229, 0.1) !important;
+    border-color: #1E88E5 !important;
+    box-shadow: 0 0 20px rgba(30, 136, 229, 0.15) !important;
+}
+
+body.light-theme .odds-card.selected .odds-card-value {
+    color: #1565C0 !important;
+    -webkit-text-fill-color: #1565C0 !important;
+    text-shadow: none !important;
+}
+
+/* --- 10. Feature-карточки на главной --- */
+body.light-theme .feature-card {
+    background: rgba(255, 255, 255, 0.92) !important;
+    border: 1px solid rgba(66, 165, 245, 0.2) !important;
+    box-shadow: 0 4px 16px rgba(66, 165, 245, 0.08) !important;
+}
+
+body.light-theme .feature-card:hover {
+    border-color: rgba(66, 165, 245, 0.5) !important;
+    box-shadow: 0 10px 30px rgba(66, 165, 245, 0.15) !important;
+}
+
+body.light-theme .feature-card h4 {
+    color: #1976D2 !important;
+    -webkit-text-fill-color: #1976D2 !important;
+}
+
+/* --- 11. Пуассон-формула --- */
+body.light-theme .poisson-formula-card {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid rgba(66, 165, 245, 0.25) !important;
+}
+
+body.light-theme .poisson-formula-label {
+    color: #1976D2 !important;
+}
+
+body.light-theme .poisson-formula-main {
+    color: #0D47A1 !important;
+    text-shadow: none !important;
+}
+
+body.light-theme .poisson-formula-legend span {
+    color: #4A5568 !important;
+    background: rgba(66, 165, 245, 0.08) !important;
+}
+
+body.light-theme .poisson-formula-legend strong {
+    color: #1565C0 !important;
+}
+
+body.light-theme .poisson-k {
+    color: #718096 !important;
+}
+
+body.light-theme .poisson-val {
+    color: #1565C0 !important;
+}
+
+body.light-theme .poisson-example-item {
+    background: rgba(255, 255, 255, 0.85) !important;
+    border: 1px solid rgba(66, 165, 245, 0.15) !important;
+}
+
+/* --- 12. Betting-лейблы --- */
+body.light-theme .betting-label {
+    color: #2D3748 !important;
+}
+
+body.light-theme .betting-label-value {
+    color: #1565C0 !important;
+    background: rgba(66, 165, 245, 0.1) !important;
+}
+
+body.light-theme .betting-section-title {
+    color: #1A365D !important;
+    text-shadow: none !important;
+}
+
+body.light-theme .betting-accent {
+    color: #1976D2 !important;
+}
+
+/* --- 13. Кнопка закрытия модалки --- */
+body.light-theme .close {
+    color: #4A5568 !important;
+    background: none !important;
+    box-shadow: none !important;
+}
+
+body.light-theme .close:hover {
+    color: #1976D2 !important;
+    background: rgba(66, 165, 245, 0.1) !important;
+}
+
+/* --- 14. Bet-type карточки --- */
+body.light-theme .bet-type-card {
+    background: rgba(255, 255, 255, 0.85) !important;
+    border: 1px solid rgba(66, 165, 245, 0.15) !important;
+}
+
+body.light-theme .bet-type-card h5 {
+    color: #1976D2 !important;
+}
+
+body.light-theme .bet-type-card p {
+    color: #4A5568 !important;
+}
+
+/* --- 15. Home-tabs и prob-tabs фон --- */
+body.light-theme .home-tabs-header {
+    background: rgba(66, 165, 245, 0.06) !important;
+    border: 1px solid rgba(66, 165, 245, 0.12) !important;
+}
+
+/* --- 16. Баланс в модалке --- */
+body.light-theme #modal-balance,
+body.light-theme .modal-content .statistics .stat-label {
+    color: #2D3748 !important;
+}
+
+/* --- 17. Inline-Style блоки "Простым языком" и "На языке теории" --- */
+body.light-theme div[style*="background: rgba(46, 204, 113"] {
+    background: rgba(232, 245, 233, 0.9) !important;
+    border-left-color: #43a047 !important;
+}
+
+body.light-theme div[style*="background: rgba(155, 89, 182"] {
+    background: rgba(237, 231, 246, 0.9) !important;
+    border-left-color: #7e57c2 !important;
+}
+
+/* --- 18. Дисклеймер на главной (красный) с inline styles --- */
+body.light-theme .content-block[style*="border-left-color: #e74c3c"] {
+    background: #fff5f5 !important;
+    border-left-color: #e53e3e !important;
+}
+
+body.light-theme .content-block[style*="border-left-color: #27ae60"] {
+    background: #f0fff4 !important;
+    border-left-color: #38a169 !important;
+}
+
+body.light-theme .content-block[style*="border-left-color: #3498db"] {
+    background: #ebf8ff !important;
+    border-left-color: #3182ce !important;
+}
+
+/* --- 19. Кнопка симуляции ставок --- */
+body.light-theme .betting-simulate-btn {
+    background: linear-gradient(135deg, #5a9de6, #3b82c4) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    box-shadow: 0 4px 15px rgba(90, 157, 230, 0.3) !important;
+}
+
+body.light-theme .betting-simulate-btn:not(:disabled):hover {
+    background: linear-gradient(135deg, #4a8ed6, #2d71b3) !important;
+    box-shadow: 0 6px 20px rgba(90, 157, 230, 0.4) !important;
+}
+
+/* --- 20. Блэкджек стол --- */
+body.light-theme .bj-table {
+    background: rgba(255, 255, 255, 0.8) !important;
+    border: 2px solid #43a047 !important;
+    backdrop-filter: blur(12px) !important;
+}
+
+/* --- 21. Навигационный dropdown в мобильном меню --- */
+body.light-theme .nav-dropdown.active .nav-dropdown-content {
+    background: rgba(255, 255, 255, 0.92) !important;
+}
+
+/* --- 22. Кости (dice) — тёмные на светлом фоне --- */
+body.light-theme .dice-val {
+    background: #ffffff !important;
+    color: #1A365D !important;
+    -webkit-text-fill-color: #1A365D !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    border: 2px solid #000000 !important;
+}
+
+/* --- 23. Рулетка — светлая тема --- */
+body.light-theme #roulette-display {
+    background: rgba(255, 255, 255, 0.8) !important;
+    backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(0, 0, 0, 0.05) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04) !important;
+}
+
+body.light-theme #roulette-anim.game-anim-text {
+    color: #334155 !important;
+    text-shadow: none !important;
+}
+
+body.light-theme button[onclick*="playRoulette('red')"] {
+    background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+    box-shadow: 0 2px 10px rgba(239, 68, 68, 0.2) !important;
+}
+
+body.light-theme button[onclick*="playRoulette('zero')"] {
+    background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+    box-shadow: 0 2px 10px rgba(34, 197, 94, 0.2) !important;
+}
+
+body.light-theme button[onclick*="playRoulette('black')"] {
+    background: linear-gradient(135deg, #64748b, #475569) !important;
+    box-shadow: 0 2px 10px rgba(71, 85, 105, 0.2) !important;
+}
+
+body.light-theme button[onclick*="playRoulette('even')"] {
+    background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+    box-shadow: 0 2px 10px rgba(59, 130, 246, 0.2) !important;
+}
+
+body.light-theme button[onclick*="playRoulette('odd')"] {
+    background: linear-gradient(135deg, #a855f7, #9333ea) !important;
+    box-shadow: 0 2px 10px rgba(168, 85, 247, 0.2) !important;
+}
+
+body.light-theme .roulette-result-val {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 2px solid #e2e8f0 !important;
+}
+
+body.light-theme .roulette-result-val.val-red {
+    background: #fdf2f8 !important;
+    border-color: #fbcfe8 !important;
+    box-shadow: 0 0 15px rgba(244, 114, 182, 0.3) !important;
+}
+
+body.light-theme .roulette-result-val.val-red span {
+    color: #ef4444 !important;
+    -webkit-text-fill-color: #ef4444 !important;
+}
+
+body.light-theme .roulette-result-val.val-black {
+    background: #f8fafc !important;
+    border-color: #1e293b !important;
+    box-shadow: 0 0 15px rgba(30, 41, 59, 0.3) !important;
+}
+
+body.light-theme .roulette-result-val.val-black span {
+    color: #475569 !important;
+    -webkit-text-fill-color: #475569 !important;
+}
+
+body.light-theme .roulette-result-val.val-green {
+    background: #f0fdf4 !important;
+    border-color: #bbf7d0 !important;
+    box-shadow: 0 0 15px rgba(74, 222, 128, 0.3) !important;
+}
+
+body.light-theme .roulette-result-val.val-green span {
+    color: #22c55e !important;
+    -webkit-text-fill-color: #22c55e !important;
+}
+
+/* --- 24. Фикс таблиц статистики (внизу) --- */
+body.light-theme .statistics {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(12px) !important;
+    border: 2px solid #1e293b !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03) !important;
+    border-radius: 12px !important;
+    color: #1e293b !important;
+}
+
+body.light-theme .statistics .stat-row {
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+body.light-theme .statistics .stat-label {
+    color: #64748b !important;
+    font-weight: 500 !important;
+}
+
+body.light-theme .statistics .stat-value {
+    color: #0ea5e9 !important;
+    font-weight: 700 !important;
+}
+
+/* --- 25. Фикс плашек баланса с inline-стилями --- */
+body.light-theme div[style*="background: rgba(243, 156, 18, 0.1)"] {
+    background: #fffbeb !important;
+    border: 1px solid #fde68a !important;
+    color: #b45309 !important;
+    box-shadow: 0 2px 8px rgba(251, 191, 36, 0.15) !important;
+    border-radius: 12px !important;
+}
