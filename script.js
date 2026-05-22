@@ -1,23 +1,32 @@
 // ===== ПЕРЕМЕННЫЕ ИГРЫ =====
-let balance = 0;
-let initialBalanceBaseline = 0;
+let balance = localStorage.getItem('casinoBalance') !== null ? parseInt(localStorage.getItem('casinoBalance')) : 0;
+let initialBalanceBaseline = localStorage.getItem('casinoBaseline') !== null ? parseInt(localStorage.getItem('casinoBaseline')) : 0;
 let currentGame = null;
-let gameStats = {
-    totalBets: 0,
-    totalWins: 0,
-    winCount: 0,
-    loseCount: 0,
-    drawCount: 0
-};
+let gameStats = localStorage.getItem('casinoGameStats')
+    ? JSON.parse(localStorage.getItem('casinoGameStats'))
+    : { totalBets: 0, totalWins: 0, winCount: 0, loseCount: 0, drawCount: 0 };
 
 // ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
-function showAlert(message) {
-    // Use toast notification instead of native alert for better UX
-    if (typeof showToast === 'function') {
-        showToast(message);
-    } else {
-        alert(message);
+function showToast(message) {
+    let toast = document.getElementById('custom-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'custom-toast';
+        document.body.appendChild(toast);
     }
+    toast.innerHTML = `<span style="font-size: 1.2rem; margin-right: 8px;">⚠️</span> ${message}`;
+    toast.className = 'custom-toast show';
+
+    // Clear previous timeout if exists
+    if (toast.timeoutId) clearTimeout(toast.timeoutId);
+
+    toast.timeoutId = setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3500);
+}
+
+function showAlert(message) {
+    showToast(message);
 }
 
 function updateStats() {
@@ -39,7 +48,15 @@ function updateStats() {
 }
 
 // ===== ИСТОРИЯ СТАВОК =====
-let betHistory = [];
+let betHistory = localStorage.getItem('casinoBetHistory')
+    ? JSON.parse(localStorage.getItem('casinoBetHistory'))
+    : [];
+
+// === Сохранение данных в localStorage ===
+function saveBetHistory() {
+    localStorage.setItem('casinoBetHistory', JSON.stringify(betHistory));
+    localStorage.setItem('casinoGameStats', JSON.stringify(gameStats));
+}
 
 // ===== ПЕРЕКЛЮЧАТЕЛЬ ТЕМЫ =====
 function initTheme() {
@@ -93,6 +110,7 @@ function recordBet(game, bet, result, payout) {
 
     if (result === 'draw') gameStats.drawCount++;
 
+    saveBetHistory();
     renderBetHistory();
     updateLossCalculator();
 }
@@ -129,14 +147,14 @@ function renderBetHistory() {
     container.innerHTML = betHistory.map(e => {
         const cls = e.result === 'win' ? 'bh-item-win' : e.result === 'draw' ? 'bh-item-draw' : 'bh-item-lose';
         const icon = e.result === 'win' ? '✅' : e.result === 'draw' ? '🤝' : '❌';
-        
+
         const iters = e.iterations || 1;
         const wager = e.totalWager !== undefined ? e.totalWager : e.bet;
         const payout = e.totalPayout !== undefined ? e.totalPayout : (e.payout || 0);
         let netProfit = 0;
         if (e.netProfit !== undefined) netProfit = e.netProfit;
         else netProfit = e.result === 'win' ? payout - wager : (e.result === 'lose' ? -wager : 0);
-        
+
         const netProfitStr = netProfit > 0 ? `+$${netProfit}` : (netProfit < 0 ? `-$${Math.abs(netProfit)}` : `$0`);
         const profitColor = netProfit > 0 ? '#2ecc71' : (netProfit < 0 ? '#e74c3c' : '#f1c40f');
 
@@ -233,12 +251,35 @@ function updateLossCalculator() {
 function clearBetHistory() {
     betHistory = [];
     gameStats.drawCount = 0;
+    saveBetHistory();
     renderBetHistory();
     updateLossCalculator();
 }
 
+// Сброс только истории ставок (кнопка)
+function clearBetHistoryOnly() {
+    betHistory = [];
+    gameStats = { totalBets: 0, totalWins: 0, winCount: 0, loseCount: 0, drawCount: 0 };
+    initialBalanceBaseline = Math.floor(balance);
+    localStorage.setItem('casinoBaseline', initialBalanceBaseline);
+    saveBetHistory();
+    renderBetHistory();
+    updateLossCalculator();
+    updateStats();
+    showToast('История ставок очищена');
+}
+
+// Сброс калькулятора потерь (кнопка)
+function clearCalculator() {
+    initialBalanceBaseline = Math.floor(balance);
+    localStorage.setItem('casinoBaseline', initialBalanceBaseline);
+    updateLossCalculator();
+    showToast('Калькулятор потерь сброшен');
+}
+
 // Global Balance Update
 function updateGlobalBalance() {
+    localStorage.setItem('casinoBalance', balance);
     const navBal = document.getElementById('nav-global-balance');
     if (navBal) navBal.textContent = '$' + Math.floor(balance);
     const localBal = document.getElementById('balance-display');
@@ -253,11 +294,11 @@ function resetCasinoBalance() {
 function openDepositModal() {
     const modal = document.getElementById('depositModal');
     if (modal) {
+        // Синхронизируем текущий баланс в окне депозита
+        const depBal = document.getElementById('deposit-current-balance');
+        if (depBal) depBal.textContent = Math.floor(balance);
         modal.classList.add('active');
         document.body.style.overflow = 'hidden';
-    } else {
-        const val = prompt('Введите сумму депозита (от 1 до 100000):', '3000');
-        if (val) submitDepositQuick(val);
     }
 }
 
@@ -276,17 +317,18 @@ function submitDeposit() {
 
 function submitDepositQuick(val) {
     const parsed = parseInt(val);
-    if(isNaN(parsed) || parsed < 1 || parsed > 1000000) {
-        alert('Пожалуйста, введите сумму от $1 до $1000000.');
+    if (isNaN(parsed) || parsed < 1 || parsed > 1000000) {
+        showToast('Пожалуйста, введите сумму от $1 до $1,000,000.');
         return;
     }
     balance = parsed;
     initialBalanceBaseline = parsed;
+    localStorage.setItem('casinoBalance', balance);
+    localStorage.setItem('casinoBaseline', initialBalanceBaseline);
     updateGlobalBalance();
-    clearBetHistory();
-    gameStats = { totalBets: 0, totalWins: 0, winCount: 0, loseCount: 0, drawCount: 0 };
     updateStats();
-    
+    showToast(`Баланс установлен: $${parsed}`);
+
     // Animate reset
     const navBal = document.getElementById('nav-global-balance');
     if (navBal) {
@@ -297,18 +339,74 @@ function submitDepositQuick(val) {
     closeDepositModal();
 }
 
-document.addEventListener('DOMContentLoaded', updateGlobalBalance);
+function resetBalanceTo3000() {
+    balance = 0;
+    initialBalanceBaseline = 0;
+    localStorage.setItem('casinoBalance', balance);
+    localStorage.setItem('casinoBaseline', initialBalanceBaseline);
+    updateGlobalBalance();
+    updateStats();
+    showToast('Баланс сброшен до $0');
+
+    // Обновляем отображение в модалке
+    const depBal = document.getElementById('deposit-current-balance');
+    if (depBal) depBal.textContent = Math.floor(balance);
+
+    const navBal = document.getElementById('nav-global-balance');
+    if (navBal) {
+        navBal.style.animation = 'none';
+        void navBal.offsetWidth;
+        navBal.style.animation = 'winPulse 0.5s ease';
+    }
+    closeDepositModal();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    updateGlobalBalance();
+    renderBetHistory();
+    updateLossCalculator();
+    updateStats();
+
+    // Enter на поле депозита → подтверждает депозит
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        const active = document.activeElement;
+        if (!active || active.tagName !== 'INPUT' || active.type !== 'number') return;
+
+        e.preventDefault();
+
+        // Депозит
+        if (active.id === 'deposit-amount') {
+            submitDeposit();
+            return;
+        }
+
+        // Ставки на футбол
+        if (active.id === 'betting-amount' || active.id === 'betting-sim-iters') {
+            const btn = document.getElementById('betting-sim-btn');
+            if (btn && !btn.disabled) btn.click();
+            return;
+        }
+
+        // Ставки в играх — находим ближайшую кнопку «Играть / Вращать»
+        const gameArea = active.closest('#gameArea') || active.closest('.section');
+        if (gameArea) {
+            const playBtn = gameArea.querySelector('.btn-play');
+            if (playBtn) playBtn.click();
+        }
+    });
+});
 
 const gameDetailsData = {
     roulette: {
         title: "Европейская рулетка",
         rules: `
-            <ul>
+            <ul style="color: #ecf0f1; font-size: 1.05rem;">
                 <li><strong>Цель:</strong> Угадать, в какую из 37 ячеек (0-36) упадет шарик.</li>
                 <li><strong>Ставки:</strong> Можно ставить на число, цвет (красное/черное), четное/нечетное, зеро, дюжина</li>
                 <li><strong>Зеро (0):</strong> При выпадении 0 все ставки на простые шансы (цвет, четное/нечетное) проигрывают.</li>
                 <li><strong>Выплаты:</strong>
-                    <ul>
+                    <ul style="margin-top:0.5rem; color:#bdc3c7;">
                         <li>1 число: 35 к 1</li>
                         <li>Красное/Черное: 1 к 1</li>
                         <li>Четное/Нечетное: 1 к 1</li>
@@ -319,19 +417,54 @@ const gameDetailsData = {
         `,
         description: "Европейская рулетка — одна из самых популярных игр казино. В отличие от американской версии, здесь всего один сектор «зеро», что делает игру более выгодной для игрока (преимущество казино всего 2.7%).",
         theory: `
-            <p><strong>Математическое ожидание:</strong></p>
-            <div class="formula">E = (Sum(P_i * X_i)) - Bet</div>
-            <p>Для ставки $1 на красное:</p>
-            <div class="formula">E = (18/37 * 2) - 1 = 0.973 - 1 = -0.027</div>
-            <p>На каждый поставленный $1 игрок теряет в среднем $0.027.</p>
-            <p><strong>Распределение:</strong> Равномерное дискретное распределение (каждое число имеет вероятность 1/37).</p>
+            <p><strong>Математическое ожидание и Распределение:</strong></p>
+            <p style="margin-bottom: 1rem; font-size: 0.9rem;">В рулетке действует равномерное дискретное распределение (каждое число имеет выроятность 1/37).</p>
+            <div class="beautiful-formula">
+                <div class="formula-title">Формула Математического Ожидания E(X)</div>
+                <div class="formula-content">E(X) = (P<sub>выигрыш</sub> &times; Выплата) - (P<sub>проигрыш</sub> &times; Ставка)</div>
+            </div>
+            <p style="margin-top: 1rem;">Для ставки $1 на красное / черное / четное / нечетное:</p>
+            <div class="beautiful-formula">
+                <div class="formula-content">E(X) = (18/37 &times; 1) - (19/37 &times; 1) = -1/37 &approx; <span style="color:#e74c3c;">-0.027 (-2.7%)</span></div>
+            </div>
+            <p style="margin-top: 1rem; font-size: 0.95rem; color:#bdc3c7;">На каждый поставленный $1 игрок теряет в среднем $0.027. Казино не обманывает, оно просто имеет статистическое преимущество на длинной дистанции (Закон больших чисел).</p>
         `,
-        history: "Рулетка была изобретена французским математиком Блезом Паскалем в 17 веке в попытке создать вечный двигатель. Название происходит от французского 'roulette' — маленькое колесо. Европейская версия с одним зеро была представлена братьями Блан в 1843 году в Бад-Хомбурге."
+        history: "Рулетка была изобретена французским математиком Блезом Паскалем в 17 веке в попытке создать вечный двигатель. Название происходит от французского 'roulette' — маленькое колесо. Европейская версия с одним зеро была представлена братьями Блан в 1843 году в Бад-Хомбурге.",
+        howItWorks: `
+            <div class="beautiful-formula">
+                <div class="formula-title">🔧 Алгоритм игры (шаг за шагом)</div>
+                <div class="formula-content">1. Вы делаете ставку на цвет (красное/чёрное), чётное/нечётное, зеро или дюжину.</div>
+                <div class="formula-content">2. Генератор случайных чисел (Math.random()) выбирает целое число от 0 до 36 с равной вероятностью P = 1/37 для каждого числа.</div>
+                <div class="formula-content">3. Число проверяется по таблице: красное ли оно, чёрное, или зеро (0). Красные: 1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36.</div>
+                <div class="formula-content">4. Если ваш выбор совпал — баланс увеличивается на ставку × коэффициент выплаты.</div>
+                <div class="formula-content">5. Если выпало зеро (0) — проигрывают ВСЕ ставки на цвет и чёт/нечёт. Это даёт казино преимущество.</div>
+            </div>
+            <div class="beautiful-formula" style="margin-top:1rem;">
+                <div class="formula-title">📐 Формула 1: Равномерное дискретное распределение</div>
+                <div class="formula-content"><strong>Что это:</strong> Каждое из 37 чисел (0–36) выпадает с одинаковой вероятностью P(X = k) = 1/37 ≈ 2.70%. Это называется «равномерное дискретное распределение» — все исходы равновероятны.</div>
+                <div class="formula-content"><strong>Как применяется в игре:</strong> При каждом вращении система вызывает Math.floor(Math.random() * 37), что генерирует случайное целое число от 0 до 36. Каждое число появляется с вероятностью ровно 1/37.</div>
+                <div class="formula-content"><strong>Почему не 50/50:</strong> На колесе 18 красных + 18 чёрных + 1 зеро = 37 чисел. Зеро (0) не относится ни к красному, ни к чёрному, ни к чётному, ни к нечётному. Поэтому P(красное) = 18/37 ≈ 48.65%, а не 50%. Именно этот 1 сектор создаёт преимущество казино.</div>
+            </div>
+            <div class="beautiful-formula" style="margin-top:1rem;">
+                <div class="formula-title">📐 Формула 2: Математическое ожидание E(X)</div>
+                <div class="formula-content"><strong>Определение:</strong> E(X) = Σ [P(исход) × Выплата(исход)] — средний результат на бесконечном числе ставок.</div>
+                <div class="formula-content"><strong>Для ставки $1 на красное:</strong> E(X) = (18/37 × $1) − (19/37 × $1) = $0.4865 − $0.5135 = <span style="color:#e74c3c;">−$0.027</span></div>
+                <div class="formula-content"><strong>Что это значит:</strong> На каждый поставленный $1 игрок в среднем теряет 2.7 цента. За 1000 ставок по $1 средний проигрыш = $27. Казино не обманывает — оно зарабатывает на математике.</div>
+                <div class="formula-content"><strong>Для ставки на число:</strong> E(X) = (1/37 × $35) − (36/37 × $1) = $0.946 − $0.973 = <span style="color:#e74c3c;">−$0.027</span>. Тот же самый House Edge 2.7% — независимо от типа ставки!</div>
+            </div>
+            <div class="beautiful-formula" style="margin-top:1rem;">
+                <div class="formula-title">📐 Формула 3: Закон больших чисел (ЗБЧ)</div>
+                <div class="formula-content"><strong>Что это:</strong> Теорема Бернулли — при увеличении числа испытаний n → ∞, частота события P̂ сходится к истинной вероятности P.</div>
+                <div class="formula-content"><strong>Как работает:</strong> После 10 вращений красное может выпасть 7 из 10 раз (70%). Но после 10 000 вращений частота красного будет около 48.6% ± 0.5%. Чем больше игр — тем точнее статистика приближается к теории.</div>
+                <div class="formula-content"><strong>Когда работает:</strong> Всегда. На КАЖДОМ вращении. ЗБЧ не «включается» — он описывает постепенное схождение. На коротких дистанциях возможны крупные отклонения (дисперсия), но на длинных — казино всегда в плюсе.</div>
+                <div class="formula-content"><strong>Практический пример:</strong> 1000 ставок по $10 на красное: общий оборот $10 000, ожидаемый проигрыш = 10 000 × 0.027 = <span style="color:#e74c3c;">$270</span>.</div>
+            </div>
+        `
     },
     slots: {
         title: "Слот-машина",
         rules: `
-            <ul>
+            <ul style="color: #ecf0f1; font-size: 1.05rem;">
                 <li><strong>Цель:</strong> Собрать выигрышную комбинацию символов на линии выплат.</li>
                 <li><strong>Механика:</strong> Игрок делает ставку и вращает барабаны. Результат определяется ГСЧ (Генератором Случайных Чисел).</li>
                 <li><strong>В нашей версии:</strong> Победа (джекпот) достигается при выпадении трех одинаковых символов.</li>
@@ -340,98 +473,271 @@ const gameDetailsData = {
         `,
         description: "Классический 'однорукий бандит'. Слоты — самая популярная игра в казино, приносящая заведениям более 70% дохода. Современные слоты — это сложные компьютерные программы.",
         theory: `
-            <p><strong>Вероятность джекпота (3 одинаковых):</strong></p>
-            <p>Всего символов: 7. Всего комбинаций: 7^3 = 343.</p>
-            <p>Выигрышных комбинаций (X-X-X): 7.</p>
-            <div class="formula">P(Win) = 7/343 = 1/49 ≈ 2.04%</div>
-            <p><strong>Преимущество казино:</strong></p>
-            <div class="formula">House Edge = 1 - (P(Win) * Payout) = 1 - (0.0204 * 10) ≈ 79.6%</div>
-            <p>Это очень высокий показатель (в реальных слотах он обычно 5-15%).</p>
+            <p><strong>Вероятность джекпота (3 одинаковых) и Преимущество казино:</strong></p>
+            <div class="beautiful-formula">
+                <div class="formula-title">Формула комбинаторики</div>
+                <div class="formula-content">Всего символов: 7. Барабанов: 3. Всего комбинаций = 7<sup>3</sup> = 343</div>
+                <div class="formula-content">Выигрышных комбинаций (X-X-X): 7</div>
+                <div class="formula-content">P(Win) = 7 / 343 = 1/49 &approx; <span style="color:#2ecc71;">2.04%</span></div>
+            </div>
+            <br>
+            <div class="beautiful-formula">
+                <div class="formula-title">Преимущество казино (House Edge)</div>
+                <div class="formula-content">House Edge = 1 - (P(Win) &times; Payout)</div>
+                <div class="formula-content">House Edge = 1 - (0.0204 &times; 10) &approx; <span style="color:#e74c3c;">79.6%</span></div>
+            </div>
+            <p style="margin-top: 1rem; font-size: 0.95rem; color:#bdc3c7;">Слоты используют математику геометрического распределения ожиданий: чтобы выиграть один раз с вероятностью ~2%, вам в среднем потребуется 49 вращений (много попыток), однако выплата 10:1 не покрывает затраты на 49 попыток.</p>
         `,
-        history: "Первый слот 'Liberty Bell' был создан Чарльзом Феем в 1895 году. Он имел три барабана и автоматическую систему выплат. В 1963 году Bally разработала первый полностью электромеханический слот 'Money Honey'."
+        history: "Первый слот 'Liberty Bell' был создан Чарльзом Феем в 1895 году. Он имел три барабана и автоматическую систему выплат. В 1963 году Bally разработала первый полностью электромеханический слот 'Money Honey'.",
+        howItWorks: `
+            <div class="beautiful-formula">
+                <div class="formula-title">🔧 Алгоритм игры (шаг за шагом)</div>
+                <div class="formula-content">1. Вы делаете ставку и нажимаете «Вращать барабаны».</div>
+                <div class="formula-content">2. Система генерирует случайное число (Math.random()). Если оно < 7/343 ≈ 0.0204 — это ДЖЕКПОТ.</div>
+                <div class="formula-content">3. При джекпоте: выбирается случайный символ из 7, и все 3 барабана показывают его (например, 💎💎💎).</div>
+                <div class="formula-content">4. При проигрыше: генерируются 3 случайных символа. Если все совпали — перегенерация (чтобы не показать ложный джекпот).</div>
+                <div class="formula-content">5. Джекпот платит ×10 от ставки — ставка $50 → выигрыш $500. Проигрыш = полная потеря ставки.</div>
+            </div>
+            <div class="beautiful-formula" style="margin-top:1rem;">
+                <div class="formula-title">📐 Формула 1: Комбинаторика (подсчёт комбинаций)</div>
+                <div class="formula-content"><strong>Что это:</strong> Раздел математики, считающий количество возможных комбинаций. Для слотов: каждый из 3 барабанов может показать 1 из 7 символов.</div>
+                <div class="formula-content"><strong>Формула:</strong> Всего комбинаций = n^k = 7³ = 7 × 7 × 7 = 343 (где n = число символов, k = число барабанов).</div>
+                <div class="formula-content"><strong>Выигрышные комбинации:</strong> Только когда ВСЕ 3 барабана совпадают: 🍒🍒🍒, 🍓🍓🍓, 🍇🍇🍇, 🎁🎁🎁, ⭐⭐⭐, 💎💎💎, 👑👑👑 — итого 7 комбинаций.</div>
+                <div class="formula-content"><strong>P(Джекпот):</strong> 7 / 343 = 1/49 ≈ <span style="color:#2ecc71;">2.04%</span>. Это значит: в среднем 1 выигрыш на каждые 49 вращений.</div>
+            </div>
+            <div class="beautiful-formula" style="margin-top:1rem;">
+                <div class="formula-title">📐 Формула 2: Геометрическое распределение</div>
+                <div class="formula-content"><strong>Что это:</strong> Распределение, описывающее «сколько попыток нужно до первого успеха». Если P(успеха) = p, то среднее число попыток = 1/p.</div>
+                <div class="formula-content"><strong>В игре:</strong> Среднее число вращений до первого джекпота = 1 / (1/49) = 49 вращений. За 49 вращений по $1 вы потратите $49.</div>
+                <div class="formula-content"><strong>Но выплата:</strong> Джекпот = ×10. Т.е. выиграете $10, потратив $49. Чистый убыток = $39 на каждый цикл из 49 вращений.</div>
+                <div class="formula-content"><strong>P(k попыток до победы):</strong> P(X = k) = (1 − p)^(k−1) × p. P(победить за 1 вращение) = 2.04%. P(не выиграть за 50 вращений) = (48/49)^50 ≈ 36%.</div>
+            </div>
+            <div class="beautiful-formula" style="margin-top:1rem;">
+                <div class="formula-title">📐 Формула 3: House Edge (Преимущество казино)</div>
+                <div class="formula-content"><strong>Формула:</strong> HE = 1 − (P(Win) × Payout) = 1 − (1/49 × 10) = 1 − 0.204 = <span style="color:#e74c3c;">79.6%</span></div>
+                <div class="formula-content"><strong>Что это значит:</strong> Из каждых $100 поставленных в слоты, казино забирает в среднем $79.60. Это САМОЕ высокое преимущество среди всех игр на сайте.</div>
+                <div class="formula-content"><strong>Почему слоты так популярны:</strong> Несмотря на ужасную математику, слоты привлекают яркими эффектами и надеждой на джекпот (×10). Но математика беспощадна — на дистанции вы теряете ~80% вложений.</div>
+                <div class="formula-content"><strong>Когда работает:</strong> Каждое вращение — независимое событие. Предыдущие результаты НЕ влияют на следующие. Если вы проиграли 48 раз подряд, шанс следующего джекпота всё ещё 2.04%, а не больше.</div>
+            </div>
+        `
     },
     wheel: {
         title: "Колесо фортуны",
         rules: `
-            <ul>
+            <ul style="color: #ecf0f1; font-size: 1.05rem;">
                 <li><strong>Цель:</strong> Угадать выигрышный сектор.</li>
-                <li><strong>В нашей версии:</strong> Упрощенный вариант с шансом 50/50.</li>
-                <li><strong>Выплата:</strong> 2 к 1.</li>
+                <li><strong>Механика:</strong> Ставка на один из 4 секторов (Классическое разделение).</li>
+                <li><strong>Выплата:</strong> 4 к 1.</li>
             </ul>
         `,
         description: "Простая и зрелищная игра, часто используемая в телешоу и на ярмарках. В казино известна как 'Big Six Wheel'.",
         theory: `
             <p><strong>Биномиальное распределение:</strong></p>
-            <p>В нашей упрощенной версии это эквивалент подбрасывания монеты.</p>
-            <div class="formula">P(Win) = 0.5</div>
-            <div class="formula">E = (0.5 * 2) - 1 = 0</div>
-            <p>В данной реализации это единственная 'честная' игра с нулевым преимуществом казино.</p>
+            <p style="margin-bottom: 1rem; font-size: 0.9rem;">В нашей упрощенной версии (4 сектора) это эквивалентно бросанию кубика с 4 гранями.</p>
+            <div class="beautiful-formula">
+                <div class="formula-title">Вероятность и матожидание</div>
+                <div class="formula-content">P(Win) = 1/4 = 25%</div>
+                <div class="formula-content">Выплата (Payout) = 3 к 1 (т.е. +3 за победу, -1 за проигрыш)</div>
+                <div class="formula-content">E(X) = (0.25 &times; 3) - (0.75 &times; 1) = 0</div>
+            </div>
+            <p style="margin-top: 1rem; font-size: 0.95rem; color:#bdc3c7;">В данной реализации это 'честная' игра с нулевым преимуществом казино. В реальном казино сектора распределены неравномерно (например, 24 шанса на $1 и только 1 шанс на Joker $50), создавая преимущество до 24%!</p>
         `,
-        history: "Происхождение уходит корнями в древние колесницы и колеса, использовавшиеся для жребия. Современный вид игра приобрела в американских казино в конце 19 века."
+        history: "Происхождение уходит корнями в древние колесницы и колеса, использовавшиеся для жребия. Современный вид игра приобрела в американских казино в конце 19 века.",
+        howItWorks: `
+            <div class="beautiful-formula">
+                <div class="formula-title">🔧 Алгоритм игры (шаг за шагом)</div>
+                <div class="formula-content">1. Вы делаете ставку и выбираете один из 4 секторов (🍀 Клевер, ⭐ Звезда, 💎 Алмаз, ❤️ Сердце).</div>
+                <div class="formula-content">2. Система вызывает Math.random() и проверяет: если число < 0.25 — вы выиграли (ваш сектор совпал).</div>
+                <div class="formula-content">3. При выигрыше: на колесе отображается ваш символ. При проигрыше: отображается случайный ДРУГОЙ символ.</div>
+                <div class="formula-content">4. Выигрыш = ставка × 4 (включая возврат ставки). Проигрыш = полная потеря ставки.</div>
+            </div>
+            <div class="beautiful-formula" style="margin-top:1rem;">
+                <div class="formula-title">📐 Формула 1: Классическая вероятность Лапласа</div>
+                <div class="formula-content"><strong>Определение:</strong> P(события) = число благоприятных исходов / общее число равновероятных исходов.</div>
+                <div class="formula-content"><strong>В игре:</strong> P(угадать сектор) = 1 благоприятный / 4 возможных = 1/4 = 25%. Каждый сектор занимает ровно 1/4 площади колеса.</div>
+                <div class="formula-content"><strong>Почему это честно:</strong> Все 4 сектора равны по размеру и вероятности. В реальном казино Big Six Wheel сектора НЕРАВНЫЕ — например, 24 позиции для $1 и 1 для Joker $50, создавая House Edge до 24%.</div>
+            </div>
+            <div class="beautiful-formula" style="margin-top:1rem;">
+                <div class="formula-title">📐 Формула 2: Математическое ожидание</div>
+                <div class="formula-content"><strong>Формула:</strong> E(X) = P(win) × Чистая_прибыль − P(lose) × Ставка</div>
+                <div class="formula-content"><strong>Расчёт:</strong> E(X) = (1/4 × $3) − (3/4 × $1) = $0.75 − $0.75 = <span style="color:#2ecc71;">$0 (честная игра)</span></div>
+                <div class="formula-content"><strong>Что это значит:</strong> На длинной дистанции ваш баланс не должен ни расти, ни падать. Это «справедливая» игра с нулевым преимуществом казино (House Edge = 0%).</div>
+            </div>
+            <div class="beautiful-formula" style="margin-top:1rem;">
+                <div class="formula-title">📐 Формула 3: Биномиальное распределение</div>
+                <div class="formula-content"><strong>Что это:</strong> Описывает вероятность получить ровно k успехов из n независимых попыток, каждая с вероятностью p.</div>
+                <div class="formula-content"><strong>Формула:</strong> P(X = k) = C(n, k) × p^k × (1 − p)^(n − k), где C(n, k) = n! / (k! × (n − k)!)</div>
+                <div class="formula-content"><strong>Пример:</strong> Вероятность угадать 3 раза из 10: P = C(10,3) × 0.25³ × 0.75⁷ = 120 × 0.0156 × 0.1335 ≈ <span style="color:#f1c40f;">25.0%</span></div>
+                <div class="formula-content"><strong>Когда работает:</strong> При КАЖДОМ вращении. Каждая игра — независимое испытание Бернулли (p = 0.25). Биномиальное распределение позволяет предсказать вероятность любой серии (например, «выиграть 5 из 20 игр»).</div>
+            </div>
+        `
     },
     dice: {
         title: "Крэпс",
         rules: `
-            <ul>
+            <ul style="color: #ecf0f1; font-size: 1.05rem;">
                 <li><strong>Цель:</strong> Угадать исход броска двух кубиков.</li>
                 <li><strong>Ставки:</strong> Четное или Нечетное.</li>
                 <li><strong>Механика:</strong> Бросаются два шестигранных кубика, сумма чисел определяет результат.</li>
-                <li><strong>Выплата:</strong> 2 к 1.</li>
+                <li><strong>Выплата:</strong> 2 к 1. (Прибыль 1 к 1)</li>
             </ul>
         `,
         description: "Крэпс — одна из самых динамичных и шумных игр в казино. Исторически кости использовались для предсказания будущего и азартных игр тысячи лет.",
         theory: `
-            <p><strong>Распределение суммы двух кубиков:</strong></p>
-            <p>Количество исходов: 36.</p>
-            <ul>
-                <li>P(Чет) = 18/36 = 0.5</li>
-                <li>P(Нечет) = 18/36 = 0.5</li>
-            </ul>
-            <p>Распределение вероятностей сумм напоминает треугольник (пик на 7).</p>
+            <p><strong>Треугольное распределение суммы двух кубиков:</strong></p>
+            <p style="margin-bottom: 1rem; font-size: 0.9rem;">При броске 2 кубиков сумма всегда распределена неравномерно, образуя треугольник (пик вероятности на 7).</p>
+            <div class="beautiful-formula">
+                <div class="formula-title">Формула вероятности чет/нечет</div>
+                <div class="formula-content">Всего исходов: 6 &times; 6 = 36</div>
+                <div class="formula-content">P(Четное) = 18/36 = <span style="color:#f39c12;">50%</span></div>
+                <div class="formula-content">P(Нечетное) = 18/36 = <span style="color:#f39c12;">50%</span></div>
+            </div>
+            <p style="margin-top: 1rem; font-size: 0.95rem; color:#bdc3c7;">Однако, в реальном Крэпсе ставки сложнее (Pass Line, Don't Pass), и казино внедряет свои правила (например, при выпадении 12 ставка Don't Pass - возврат вместо выигрыша), что рождает <span style="color:#e74c3c;">House Edge 1.36%</span>.</p>
         `,
-        history: "Игра развилась из древней английской игры Hazard. В Новый Орлеан ее привез Бернар де Мариньи в начале 19 века, где она упростилась и получила название 'Crapaud' (жаба), позже превратившееся в Craps."
+        history: "Игра развилась из древней английской игры Hazard. В Новый Орлеан ее привез Бернар де Мариньи в начале 19 века, где она упростилась и получила название 'Crapaud' (жаба), позже превратившееся в Craps.",
+        howItWorks: `
+            <div class="beautiful-formula">
+                <div class="formula-title">🔧 Алгоритм игры (шаг за шагом)</div>
+                <div class="formula-content">1. Вы выбираете ставку: «Меньше 7» / «Больше 7» / «Ровно 7».</div>
+                <div class="formula-content">2. Система определяет результат через чистую вероятность: генерируется Math.random() и сравнивается с P(< 7) = 15/36, P(> 7) = 15/36, P(= 7) = 6/36.</div>
+                <div class="formula-content">3. После определения win/lose генерируется подходящая сумма, затем подбирается пара кубиков, дающая эту сумму.</div>
+                <div class="formula-content">4. Анимация показывает серию случайных бросков, а затем — финальный результат.</div>
+                <div class="formula-content">5. Выплата: «Больше/Меньше 7» → ×2.4 | «Ровно 7» → ×5.</div>
+            </div>
+            <div class="beautiful-formula" style="margin-top:1rem;">
+                <div class="formula-title">📐 Формула 1: Свёртка дискретных распределений</div>
+                <div class="formula-content"><strong>Что это:</strong> Когда складываются две независимые случайные величины (два кубика), результирующее распределение — это свёртка исходных. Каждый кубик: P(1) = P(2) = ... = P(6) = 1/6.</div>
+                <div class="formula-content"><strong>В игре:</strong> Два кубика (6 граней каждый) создают 6 × 6 = 36 равновероятных пар. Сумма пары — от 2 до 12.</div>
+                <div class="formula-content"><strong>Треугольное распределение:</strong> Число 7 имеет 6 комбинаций: (1,6), (2,5), (3,4), (4,3), (5,2), (6,1). Число 2 — всего 1: (1,1). Число 12 — тоже 1: (6,6). Это создаёт «треугольник» с пиком на 7.</div>
+                <div class="formula-content"><strong>Полная таблица:</strong> Сумма 2: 1/36 | 3: 2/36 | 4: 3/36 | 5: 4/36 | 6: 5/36 | 7: 6/36 | 8: 5/36 | 9: 4/36 | 10: 3/36 | 11: 2/36 | 12: 1/36.</div>
+            </div>
+            <div class="beautiful-formula" style="margin-top:1rem;">
+                <div class="formula-title">📐 Формула 2: Матожидание для каждого типа ставки</div>
+                <div class="formula-content"><strong>Ставка «Меньше 7»:</strong> P = 15/36, Payout = ×2.4. E = (15/36 × $1.40) − (21/36 × $1) = $0.583 − $0.583 = <span style="color:#2ecc71;">$0</span> — справедливая ставка.</div>
+                <div class="formula-content"><strong>Ставка «Больше 7»:</strong> P = 15/36, Payout = ×2.4. Идентичная математика → E = <span style="color:#2ecc71;">$0</span> — справедливая ставка.</div>
+                <div class="formula-content"><strong>Ставка «Ровно 7»:</strong> P = 6/36 = 1/6, Payout = ×5. E = (1/6 × $4) − (5/6 × $1) = $0.667 − $0.833 = <span style="color:#e74c3c;">−$0.167</span> — НЕвыгодная ставка! House Edge ≈ 16.7%.</div>
+                <div class="formula-content"><strong>Вывод:</strong> Ставки «Больше/Меньше» — честные (EV=0). Ставка «Ровно 7» — ловушка с преимуществом казино 16.7%!</div>
+            </div>
+            <div class="beautiful-formula" style="margin-top:1rem;">
+                <div class="formula-title">📐 Формула 3: Закон больших чисел</div>
+                <div class="formula-content"><strong>Когда работает:</strong> Свёртка применяется при КАЖДОМ броске двух кубиков. Каждый бросок — независимый эксперимент. Предыдущие броски НЕ влияют на следующие.</div>
+                <div class="formula-content"><strong>Практический пример:</strong> 100 ставок по $10 на «Ровно 7»: ожидаемый проигрыш = 100 × $10 × 0.167 = <span style="color:#e74c3c;">$167</span>.</div>
+                <div class="formula-content"><strong>100 ставок по $10 на «Меньше 7»:</strong> ожидаемый результат = $0 (плюс-минус дисперсия). На длинной дистанции — нулевой эффект.</div>
+            </div>
+        `
     },
     coin: {
         title: "Орел и решка",
         rules: `
-            <ul>
+            <ul style="color: #ecf0f1; font-size: 1.05rem;">
                 <li><strong>Цель:</strong> Угадать сторону монеты.</li>
                 <li><strong>Шансы:</strong> Классические 50/50.</li>
-                <li><strong>Выплата:</strong> 2 к 1.</li>
+                <li><strong>Выплата:</strong> Гарантирует прибыль 1 к 1.</li>
             </ul>
         `,
         description: "Самая древняя и простая азартная игра. Используется нами для демонстрации базовых принципов вероятности.",
         theory: `
-            <p><strong>Независимые события:</strong></p>
-            <p>Каждый бросок не зависит от предыдущего.</p>
-            <p>Последовательность О-О-О-О-О имеет ту же вероятность, что и О-Р-О-Р-Р (1/32).</p>
+            <p><strong>Независимые события (Схема Бернулли):</strong></p>
+            <p style="margin-bottom: 1rem; font-size: 0.9rem;">Каждый бросок абсолютно не зависит от предыдущего. Монета не имеет памяти.</p>
+            <div class="beautiful-formula">
+                <div class="formula-title">Формула вероятности серий (Теорема умножения)</div>
+                <div class="formula-content">P(Успех) = 0.5</div>
+                <div class="formula-content">P(n успехов подряд) = (0.5)<sup>n</sup></div>
+                <div class="formula-content">P(О-О-О-О-О) = 0.5<sup>5</sup> = 1/32 &approx; <span style="color:#f39c12;">3.1%</span></div>
+            </div>
+            <p style="margin-top: 1rem; font-size: 0.95rem; color:#bdc3c7;">Ошибочное мнение, что после серии из 5 Орлов шанс выпадения Решки выше, называется <strong>«Ошибкой игрока» (Gambler's Fallacy)</strong>.</p>
         `,
-        history: "Игра известна с времен Древнего Рима ('Navia aut caput' - Корабль или Голова). Встречается во всех культурах мира."
+        history: "Игра известна с времен Древнего Рима ('Navia aut caput' - Корабль или Голова). Встречается во всех культурах мира.",
+        howItWorks: `
+            <div class="beautiful-formula">
+                <div class="formula-title">🔧 Алгоритм игры (шаг за шагом)</div>
+                <div class="formula-content">1. Вы выбираете Орел (🟡) или Решку (🟠) и делаете ставку.</div>
+                <div class="formula-content">2. Генератор вызывает Math.random(). Если число < 0.5 — Орёл, ≥ 0.5 — Решка. Ровно 50/50.</div>
+                <div class="formula-content">3. Если угадали — баланс увеличивается на ставку ×2 (возврат ставки + чистая прибыль). Если нет — ставка потеряна.</div>
+            </div>
+            <div class="beautiful-formula" style="margin-top:1rem;">
+                <div class="formula-title">📐 Формула 1: Схема Бернулли</div>
+                <div class="formula-content"><strong>Что это:</strong> Последовательность n независимых экспериментов, каждый с двумя исходами (успех p = 0.5, неудача q = 0.5). Названа в честь Якоба Бернулли (1713).</div>
+                <div class="formula-content"><strong>В игре:</strong> Каждый бросок монеты — это один эксперимент Бернулли. Результат не зависит от предыдущих бросков. Монета не имеет «памяти».</div>
+                <div class="formula-content"><strong>Матожидание:</strong> E(X) = P(win) × $1 − P(lose) × $1 = 0.5 × $1 − 0.5 × $1 = <span style="color:#2ecc71;">$0</span>. Абсолютно честная игра. House Edge = 0%.</div>
+            </div>
+            <div class="beautiful-formula" style="margin-top:1rem;">
+                <div class="formula-title">📐 Формула 2: Теорема умножения (Серии)</div>
+                <div class="formula-content"><strong>Формула:</strong> P(n одинаковых подряд) = p^n = (1/2)^n. Это следствие независимости — вероятности перемножаются.</div>
+                <div class="formula-content"><strong>Примеры:</strong> P(3 орла подряд) = (1/2)³ = 1/8 = 12.5%. P(5 подряд) = 1/32 = 3.1%. P(10 подряд) = 1/1024 ≈ 0.098%. P(20 подряд) = 1/1 048 576 ≈ 0.0001%.</div>
+                <div class="formula-content"><strong>Когда работает:</strong> Формула работает ПЕРЕД началом серии. Если вы УЖЕ бросили 9 орлов, шанс 10-го орла = 50%, а не 0.098%. Это ключевое различие!</div>
+            </div>
+            <div class="beautiful-formula" style="margin-top:1rem;">
+                <div class="formula-title">📐 Формула 3: Ошибка игрока (Gambler's Fallacy)</div>
+                <div class="formula-content"><strong>Заблуждение:</strong> «Выпало 10 орлов подряд — значит СЕЙЧАС точно будет решка!» Это ЛОЖЬ. P(решка после 10 орлов) = всё ещё <span style="color:#f1c40f;">50%</span>.</div>
+                <div class="formula-content"><strong>Почему люди ошибаются:</strong> Мозг путает P(серия из 11 орлов С НУЛЯ) = 0.049% и P(ещё 1 орёл ПОСЛЕ 10) = 50%. Первое — маловероятно, второе — обычный бросок.</div>
+                <div class="formula-content"><strong>В казино:</strong> Именно эта ошибка заставляет игроков увеличивать ставки после серии проигрышей (стратегия Мартингейла), что приводит к катастрофическим потерям.</div>
+                <div class="formula-content"><strong>Когда работает:</strong> Всегда. При КАЖДОМ отдельном броске. Это фундамент всей теории вероятностей — опыт Бернулли.</div>
+            </div>
+        `
     },
     blackjack: {
         title: "Блэкджек",
         rules: `
-            <ul>
+            <ul style="color: #ecf0f1; font-size: 1.05rem;">
                 <li><strong>Цель:</strong> Набрать очков больше, чем у дилера, но не более 21.</li>
                 <li><strong>Значения карт:</strong> 2-10 - номинал, Картинки - 10, Туз - 1 или 11.</li>
-                <li><strong>Блэкджек:</strong> Туз + 10 (или картинка) с первых двух карт.</li>
+                <li><strong>Блэкджек:</strong> Туз + 10 (или картинка) с первых двух карт. Выплата 3:2.</li>
+                <li><strong>В симуляторе:</strong> Упрощенная механика с автоматическим дилером, без удвоений и сплитов. Но вероятности реальны.</li>
             </ul>
         `,
         description: "Самая интеллектуальная игра в казино, где навыки игрока реально влияют на результат. При использовании 'базовой стратегии' преимущество казино минимально.",
         theory: `
-            <p><strong>Зависимые события:</strong></p>
-            <p>Карты выходят из колоды и вероятности меняются с каждой раздачей. На этом основан 'счет карт'.</p>
-            <p>Вероятность перебора (Bust) растет нелинейно с увеличением суммы очков в руке.</p>
+            <p><strong>Зависимые события и Условная вероятность:</strong></p>
+            <p style="margin-bottom: 1rem; font-size: 0.9rem;">В отличие от рулетки, карты не возвращаются в колоду сразу (если не используется бесконечный шуз), поэтому вероятности меняются. Это называется условной вероятностью <em>P(A|B)</em>.</p>
+            <div class="beautiful-formula">
+                <div class="formula-title">Вероятность Блэкджека (с первой раздачи)</div>
+                <div class="formula-content">P(Туз из колоды) = 4/52</div>
+                <div class="formula-content">P(Десятка из оставшихся) = 16/51</div>
+                <div class="formula-content">P(Блэкджек) = 2 &times; (4/52 &times; 16/51) &approx; <span style="color:#2ecc71;">4.8%</span></div>
+            </div>
+            <p style="margin-top: 1rem; font-size: 0.95rem; color:#bdc3c7;">Математически доказано, что правильная («Базовая») стратегия минимизирует математическое ожидание потерь до сверхмалых 0.5% (House Edge). А подсчет карт по системе Hi-Lo позволяет перевесить матожидание в сторону игрока на +1%.</p>
         `,
-        history: "Происходит от французской игры 'Vingt-et-Un' (21), популярной в 17 веке. Название 'Blackjack' появилось в США, когда казино предлагали бонусную выплату за Туза пик и Валета пик (Black Jack)."
+        history: "Происходит от французской игры 'Vingt-et-Un' (21), популярной в 17 веке. Название 'Blackjack' появилось в США, когда казино предлагали бонусную выплату за Туза пик и Валета пик (Black Jack).",
+        howItWorks: `
+            <div class="beautiful-formula">
+                <div class="formula-title">🔧 Алгоритм игры (шаг за шагом)</div>
+                <div class="formula-content">1. Вы делаете ставку и нажимаете «Раздать карты».</div>
+                <div class="formula-content">2. Колода из 52 карт перемешивается (массив сортируется случайно). Вам и дилеру раздаётся по 2 карты.</div>
+                <div class="formula-content">3. Вы видите свои карты и одну карту дилера. Решаете: «Взять» (Hit) или «Хватит» (Stand).</div>
+                <div class="formula-content">4. Если сумма ваших карт > 21 — перебор (bust), мгновенный проигрыш.</div>
+                <div class="formula-content">5. Дилер открывает карты и обязан брать карты до суммы ≥17 (жёстко фиксированный алгоритм, без выбора).</div>
+                <div class="formula-content">6. Сравниваем суммы: выше без перебора = победа. Одинаково = ничья (возврат ставки). Блэкджек (21 с двух карт) платит ×2.5.</div>
+            </div>
+            <div class="beautiful-formula" style="margin-top:1rem;">
+                <div class="formula-title">📐 Формула 1: Условная вероятность P(A|B)</div>
+                <div class="formula-content"><strong>Определение:</strong> P(A|B) = P(A ∩ B) / P(B) — вероятность события A при условии, что событие B уже произошло.</div>
+                <div class="formula-content"><strong>В игре:</strong> Карты вытаскиваются БЕЗ возврата. После каждой карты вероятности МЕНЯЮТСЯ. Если первая карта — Туз (P = 4/52), то P(десятки следующей) = 16/51 (а не 16/52!), потому что колода уменьшилась на 1 карту.</div>
+                <div class="formula-content"><strong>P(Блэкджек):</strong> Туз первым: 4/52. Затем десятка: 16/51. ИЛИ десятка первой, затем Туз. Итого: 2 × (4/52 × 16/51) = 128/2652 ≈ <span style="color:#2ecc71;">4.83%</span>.</div>
+                <div class="formula-content"><strong>Отличие от рулетки:</strong> В рулетке каждое вращение — НЕЗАВИСИМОЕ событие. В блэкджеке — ЗАВИСИМОЕ. Это единственная игра, где память о прошлом математически полезна.</div>
+            </div>
+            <div class="beautiful-formula" style="margin-top:1rem;">
+                <div class="formula-title">📐 Формула 2: Формула Байеса</div>
+                <div class="formula-content"><strong>Формула:</strong> P(A|B) = P(B|A) × P(A) / P(B) — позволяет «обновлять» вероятности по мере получения новой информации.</div>
+                <div class="formula-content"><strong>Как применяется:</strong> После каждой вытащенной карты формула Байеса пересчитывает вероятности оставшихся карт. Например, если из колоды вышли 3 десятки, P(следующая — десятка) = 13/49 вместо 16/52.</div>
+                <div class="formula-content"><strong>Когда работает:</strong> После КАЖДОЙ вытянутой карты. Это непрерывный процесс обновления знаний — фундамент подсчёта карт.</div>
+            </div>
+            <div class="beautiful-formula" style="margin-top:1rem;">
+                <div class="formula-title">📐 Формула 3: Базовая стратегия + House Edge</div>
+                <div class="formula-content"><strong>Базовая стратегия:</strong> Таблица оптимальных решений (Hit/Stand/Double/Split) для каждой комбинации «ваши карты + открытая карта дилера». Рассчитана компьютером через миллионы симуляций.</div>
+                <div class="formula-content"><strong>House Edge:</strong> Без стратегии = 2–5%. С базовой стратегией = <span style="color:#e74c3c;">0.5%</span> — самое НИЗКОЕ преимущество казино из ВСЕХ игр! На каждый $1 вы теряете лишь 0.5 цента.</div>
+                <div class="formula-content"><strong>Подсчёт карт (Hi-Lo):</strong> Низкие карты (2-6) = +1, средние (7-9) = 0, высокие (10-A) = −1. Высокий «running count» = много десяток в колоде = выгодно для игрока (больше блэкджеков).</div>
+                <div class="formula-content"><strong>Когда работает:</strong> Условная вероятность применяется после КАЖДОЙ карты. Блэкджек — единственная игра казино, где преимущество можно математически перевернуть в пользу игрока (+1% с подсчётом карт).</div>
+            </div>
+        `
     },
     rps: {
         title: "Камень, Ножницы, Бумага",
         rules: `
-            <ul>
+            <ul style="color: #ecf0f1; font-size: 1.05rem;">
                 <li><strong>Цель:</strong> Победить компьютер в классической игре.</li>
                 <li><strong>Правила:</strong>
-                    <ul>
+                    <ul style="margin-top:0.5rem; color:#bdc3c7;">
                         <li>Камень бьет Ножницы</li>
                         <li>Ножницы бьют Бумагу</li>
                         <li>Бумага бьет Камень</li>
@@ -442,11 +748,44 @@ const gameDetailsData = {
         `,
         description: "Древняя игра руками, известная во многих культурах. Часто используется как способ жеребьевки.",
         theory: `
-            <p><strong>Равновероятные исходы:</strong></p>
-            <p>Если выбор противника случаен, вероятность победы, поражения и ничьей равна 1/3.</p>
-            <p>В реальности люди не выбирают случайно, что открывает возможности для психологии и теории игр (равновесие Нэша).</p>
+            <p><strong>Равновероятные исходы и Теория Игр:</strong></p>
+            <p style="margin-bottom: 1rem; font-size: 0.9rem;">Если выбор противника (бота) абсолютно случаен (вероятность 1/3 для каждого варианта), матожидание равно 0.</p>
+            <div class="beautiful-formula">
+                <div class="formula-title">Матрица равновесий</div>
+                <div class="formula-content">P(Победа) = 33.3%, P(Ничья) = 33.3%, P(Поражение) = 33.3%</div>
+                <div class="formula-content">Равновесие Нэша: Оптимальная (смешанная) стратегия &mdash; выбирать каждый вариант с вероятностью ровно 1/3.</div>
+            </div>
+            <p style="margin-top: 1rem; font-size: 0.95rem; color:#bdc3c7;">Любое отклонение игроком от вероятности 1/3 для одного из вариантов позволяет оппоненту подстроиться и получить математическое преимущество. Это классический пример равновесия Нэша в игре с нулевой суммой.</p>
         `,
-        history: "Игра возникла в Китае во времена династии Хань (206 г. до н.э. — 220 г. н.э.). В Европу попала только в 20 веке."
+        history: "Игра возникла в Китае во времена династии Хань (206 г. до н.э. — 220 г. н.э.). В Европу попала только в 20 веке.",
+        howItWorks: `
+            <div class="beautiful-formula">
+                <div class="formula-title">🔧 Алгоритм игры (шаг за шагом)</div>
+                <div class="formula-content">1. Вы выбираете 🗿 Камень, ✂️ Ножницы или 📄 Бумагу и делаете ставку.</div>
+                <div class="formula-content">2. Бот генерирует Math.floor(Math.random() * 3): 0 = Камень, 1 = Ножницы, 2 = Бумага. Каждый вариант с P = 1/3.</div>
+                <div class="formula-content">3. Сравниваются выборы по циклическому правилу: Камень → Ножницы → Бумага → Камень. Совпадение = ничья.</div>
+                <div class="formula-content">4. Победа → ставка ×2 (чистая прибыль = ставка). Ничья → возврат ставки. Поражение → потеря ставки.</div>
+            </div>
+            <div class="beautiful-formula" style="margin-top:1rem;">
+                <div class="formula-title">📐 Формула 1: Классическая вероятность (3 равных исхода)</div>
+                <div class="formula-content"><strong>Что это:</strong> При честной случайной генерации каждый из 3 вариантов бота равновероятен. P(Камень) = P(Ножницы) = P(Бумага) = 1/3 ≈ 33.33%.</div>
+                <div class="formula-content"><strong>Исходы:</strong> 9 возможных комбинаций (3 ваших × 3 бота). Из них 3 победных + 3 ничейных + 3 проигрышных. Поэтому P(win) = P(draw) = P(lose) = 3/9 = 1/3.</div>
+                <div class="formula-content"><strong>Матожидание:</strong> E(X) = (1/3 × $1) + (1/3 × $0) − (1/3 × $1) = $0.333 + $0 − $0.333 = <span style="color:#2ecc71;">$0 (честная игра)</span>. House Edge = 0%.</div>
+            </div>
+            <div class="beautiful-formula" style="margin-top:1rem;">
+                <div class="formula-title">📐 Формула 2: Равновесие Нэша (Теория Игр)</div>
+                <div class="formula-content"><strong>Что это:</strong> Концепция Джона Нэша (нобелевская премия 1994). Равновесие — это набор стратегий, при котором ни один игрок не может улучшить свой результат, изменив только СВОЮ стратегию.</div>
+                <div class="formula-content"><strong>В КНБ:</strong> Оптимальная «смешанная стратегия» — выбирать каждый вариант ровно с P = 1/3. Любое отклонение (например, Камень в 50% случаев) создаёт уязвимость: противник может использовать Бумагу чаще и выигрывать.</div>
+                <div class="formula-content"><strong>Игра с нулевой суммой:</strong> Выигрыш одного = проигрыш другого. Сумма всех выигрышей и проигрышей = 0. Это фундаментальная модель конкурентных ситуаций — от покера до рыночного ценообразования.</div>
+            </div>
+            <div class="beautiful-formula" style="margin-top:1rem;">
+                <div class="formula-title">📐 Формула 3: Психологические паттерны vs Математика</div>
+                <div class="formula-content"><strong>Бот vs Человек:</strong> Наш бот играет ИДЕАЛЬНО по Нэшу (P = 1/3 для каждого варианта). Против такого бота невозможно выиграть на дистанции — никакая стратегия не даст преимущества.</div>
+                <div class="formula-content"><strong>Человек vs Человек:</strong> Люди НЕ умеют генерировать случайные числа. Исследования показывают: мужчины чаще начинают с Камня (~38%), а после проигрыша — переключаются на то, что побило бы их предыдущий выбор.</div>
+                <div class="formula-content"><strong>Почему паттерны опасны:</strong> Если вы играете Камень в 50% случаев, умный противник будет играть Бумагу в 100% случаев и выиграет ≈50% ставок (вместо 33%). Отклонение от 1/3 ВСЕГДА невыгодно!</div>
+                <div class="formula-content"><strong>Когда работает:</strong> Равновесие Нэша работает при КАЖДОМ раунде. Оно описывает оптимальное поведение в ЛЮБОЙ конкурентной ситуации с несколькими стратегиями.</div>
+            </div>
+        `
     }
 };
 
@@ -700,6 +1039,7 @@ function openGameDetails(gameId) {
         <div class="tabs-header">
             <button class="tab-btn active" onclick="switchTab('rules')">📜 Правила</button>
             <button class="tab-btn" onclick="switchTab('description')">ℹ️ Описание</button>
+            <button class="tab-btn" onclick="switchTab('howitworks')">⚙️ Как это работает</button>
             <button class="tab-btn" onclick="switchTab('theory')">📊 Теория</button>
             <button class="tab-btn" onclick="switchTab('history')">🕰️ История</button>
         </div>
@@ -712,6 +1052,11 @@ function openGameDetails(gameId) {
         <div id="tab-description" class="tab-content details-block">
             <h4>Об игре:</h4>
             <p>${data.description}</p>
+        </div>
+
+        <div id="tab-howitworks" class="tab-content details-block">
+            <h4>⚙️ Как это работает:</h4>
+            ${data.howItWorks || '<p>Раздел в разработке.</p>'}
         </div>
 
         <div id="tab-theory" class="tab-content details-block">
@@ -760,8 +1105,11 @@ function switchTab(tabId) {
 function createRouletteGame() {
     return `
         <h2>🎡 Рулетка</h2>
-        <div class="odds-display">
-            <strong>Формула:</strong> P(красное) = 18/37 = <span style="color: #2ecc71;">48.6%</span> | P(зеро) = 1/37 = <span style="color: #f1c40f;">2.7%</span>
+        <div class="beautiful-formula">
+            <div class="formula-title">Равномерное дискретное распределение</div>
+            <div class="formula-content">P(красное/черное/четное/нечетное) = 18/37 &approx; <span style="color: #2ecc71;">48.65%</span></div>
+            <div class="formula-content">P(зеро) = 1/37 &approx; <span style="color: #f1c40f;">2.70%</span></div>
+            <div class="formula-content">E(X) = (18/37 × 1) − (19/37 × 1) = <span style="color:#e74c3c;">−2.7%</span></div>
         </div>
        
         <div class="input-group" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
@@ -778,10 +1126,14 @@ function createRouletteGame() {
             </div>
         </div>
 
-        <div class="game-buttons grid-3">
-            <button class="btn-play" onclick="playRoulette('red')">🔴 Красное</button>
+        <div class="game-buttons" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 0.5rem;">
+            <button class="btn-play" style="background: #e74c3c;" onclick="playRoulette('red')">🔴 Красное</button>
             <button class="btn-play" style="background: #27ae60;" onclick="playRoulette('zero')">🟢 Зеро (0)</button>
-            <button class="btn-play" onclick="playRoulette('black')">⚫ Черное</button>
+            <button class="btn-play" style="background: #1a252f;" onclick="playRoulette('black')">⚫ Черное</button>
+        </div>
+        <div class="game-buttons" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+            <button class="btn-play" style="background: linear-gradient(135deg, #2980b9, #2c3e50);" onclick="playRoulette('even')">🔢 Четное</button>
+            <button class="btn-play" style="background: linear-gradient(135deg, #8e44ad, #2c3e50);" onclick="playRoulette('odd')">🔢 Нечетное</button>
         </div>
 
         <div style="margin-top: 1rem;">
@@ -839,7 +1191,7 @@ function playRoulette(color) {
     const maxSpins = 20;
     const interval = setInterval(() => {
         const tempNum = Math.floor(Math.random() * 37);
-        const tempColor = tempNum === 0 ? '#2ecc71' : (tempNum % 2 === 0 ? 'white' : '#e74c3c');
+        const tempColor = tempNum === 0 ? '#2ecc71' : (tempNum % 2 === 0 ? '#bdc3c7' : '#e74c3c');
 
         animDisplay.innerHTML = `<span style="color: ${tempColor}; font-size: 3rem; display: inline-block; transform: scale(${1 + Math.random() * 0.2}); opacity: 0.8;">${tempNum}</span>`;
         spins++;
@@ -854,20 +1206,24 @@ function playRoulette(color) {
 function finishRoulette(color, bet) {
     // Чистая вероятность
     let won = false;
-    let payout = 2;
+    let payout = 2; // для шансов 1:1, прибыль bet (всего bet * 2 возвращается)
 
-    if (color === 'zero') { won = Math.random() < 1/37; payout = 36; }
-    else { won = Math.random() < 18/37; }
+    if (color === 'zero') { won = Math.random() < 1 / 37; payout = 36; }
+    else { won = Math.random() < 18 / 37; }
 
     let number = 0;
     if (won) {
         if (color === 'zero') number = 0;
-        else if (color === 'red') number = Math.floor(Math.random() * 18) * 2 + 1; // Нечетные (Красное)
-        else if (color === 'black') number = Math.floor(Math.random() * 18) * 2 + 2; // Четные (Черное)
+        else if (color === 'red') number = Math.floor(Math.random() * 18) * 2 + 1; // Нечетные (Красное) (Условно)
+        else if (color === 'black') number = Math.floor(Math.random() * 18) * 2 + 2; // Четные (Черное) (Условно)
+        else if (color === 'even') number = Math.floor(Math.random() * 18) * 2 + 2; // Четные
+        else if (color === 'odd') number = Math.floor(Math.random() * 18) * 2 + 1; // Нечетные
     } else {
         if (color === 'zero') number = Math.floor(Math.random() * 36) + 1; // 1-36
-        else if (color === 'red') number = Math.random() < 1/19 ? 0 : Math.floor(Math.random() * 18) * 2 + 2; // 0 или Четные
-        else if (color === 'black') number = Math.random() < 1/19 ? 0 : Math.floor(Math.random() * 18) * 2 + 1; // 0 или Нечетные
+        else if (color === 'red') number = Math.random() < 1 / 19 ? 0 : Math.floor(Math.random() * 18) * 2 + 2; // 0 или Четные
+        else if (color === 'black') number = Math.random() < 1 / 19 ? 0 : Math.floor(Math.random() * 18) * 2 + 1; // 0 или Нечетные
+        else if (color === 'even') number = Math.random() < 1 / 19 ? 0 : Math.floor(Math.random() * 18) * 2 + 1; // 0 или Нечетные
+        else if (color === 'odd') number = Math.random() < 1 / 19 ? 0 : Math.floor(Math.random() * 18) * 2 + 2; // 0 или Четные
     }
 
     let resultColor = 'black';
@@ -889,7 +1245,14 @@ function finishRoulette(color, bet) {
 
     if (!resultDiv) return;
 
-    // won is already defined above, payout is defined above
+    let chosenText = '';
+    if (color === 'zero') chosenText = 'Зеро';
+    else if (color === 'red') chosenText = 'Красное';
+    else if (color === 'black') chosenText = 'Черное';
+    else if (color === 'even') chosenText = 'Четное';
+    else if (color === 'odd') chosenText = 'Нечетное';
+
+    let actualText = ' (' + (resultColor === 'zero' ? 'Зеро' : (resultColor === 'black' ? 'Черное' : 'Красное')) + ')';
 
     if (won) {
         const win = bet * payout;
@@ -897,13 +1260,13 @@ function finishRoulette(color, bet) {
         gameStats.totalWins += win;
         gameStats.winCount++;
         resultDiv.className = 'result-message win';
-        resultDiv.textContent = `✅ ВЫИГРЫШ! (+$${win}) Выпало: ${number} (${resultColor === 'zero' ? 'Зеро' : resultColor === 'black' ? 'Черное' : 'Красное'})`;
+        resultDiv.textContent = `✅ ВЫИГРЫШ! (+$${win - bet}) Выпало: ${number}${actualText} | Ставка: ${chosenText}`;
         playWinSound();
         recordBet('roulette', bet, 'win', win);
     } else {
         gameStats.loseCount++;
         resultDiv.className = 'result-message lose';
-        resultDiv.textContent = `❌ ПРОИГРЫШ! (-$${bet}) Выпало: ${number} (${resultColor === 'zero' ? 'Зеро' : resultColor === 'black' ? 'Черное' : 'Красное'})`;
+        resultDiv.textContent = `❌ ПРОИГРЫШ! (-$${bet}) Выпало: ${number}${actualText} | Ставка: ${chosenText}`;
         playLoseSound();
         recordBet('roulette', bet, 'lose', 0);
     }
@@ -914,12 +1277,15 @@ function finishRoulette(color, bet) {
     updateStats();
 }
 
+
 // ===== СЛОТЫ (Без изменений) =====
 function createSlotsGame() {
     return `
         <h2>🎰 Слот-машина</h2>
-        <div class="odds-display">
-            <strong>Формула:</strong> P(3 одинаковых) = 7/343 = <span style="color: #2ecc71;">2%</span> | Казино: <span style="color: #e74c3c;">93%</span>
+        <div class="beautiful-formula">
+            <div class="formula-title">Комбинаторика</div>
+            <div class="formula-content">P(3 одинаковых) = 7/7³ = 7/343 = 1/49 &approx; <span style="color: #2ecc71;">2.04%</span></div>
+            <div class="formula-content">House Edge = 1 − (1/49 × 10) &approx; <span style="color: #e74c3c;">79.6%</span></div>
         </div>
         
         <div class="input-group" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
@@ -1072,8 +1438,11 @@ function playSlots() {
 function createWheelGame() {
     return `
         <h2>🎪 Колесо фортуны</h2>
-        <div class="odds-display">
-            <strong>Коэффициенты:</strong> 4 символа, Шанс 25%. Выплата: 4 к 1.
+        <div class="beautiful-formula">
+            <div class="formula-title">📐 Биномиальное распределение (Справедливая игра)</div>
+            <div class="formula-content">P(угадать сектор) = 1/4 = <span style="color: #2ecc71;">25%</span></div>
+            <div class="formula-content">Выплата: <span style="color: #f1c40f;">4 к 1</span> (ставка ×4 при победе)</div>
+            <div class="formula-content">E(X) = (1/4 × 3) − (3/4 × 1) = <span style="color:#2ecc71;">0 (честная игра)</span></div>
         </div>
         
         <div class="input-group" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
@@ -1208,8 +1577,11 @@ function finishWheel(bet, choice, symbols) {
 function createDiceGame() {
     return `
         <h2>🎲 Крэпс</h2>
-        <div class="odds-display">
-            <strong>Ставки:</strong> <7 (Выплата 2.4x) | 7 (Выплата 5x) | >7 (Выплата 2.4x)
+        <div class="beautiful-formula">
+            <div class="formula-title">📐 Свёртка дискретных распределений (Сумма двух кубиков)</div>
+            <div class="formula-content">P(Сумма < 7) = 15/36 &approx; <span style="color: #2ecc71;">41.67%</span> → Выплата: ×2.4</div>
+            <div class="formula-content">P(Сумма > 7) = 15/36 &approx; <span style="color: #2ecc71;">41.67%</span> → Выплата: ×2.4</div>
+            <div class="formula-content">P(Сумма = 7) = 6/36 &approx; <span style="color: #f1c40f;">16.67%</span> → Выплата: ×5</div>
         </div>
         
         <div class="input-group" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
@@ -1275,9 +1647,9 @@ function playDice(choice) {
 
     // Чистые вероятности для костей
     let won = false;
-    if (choice === 'under') { won = Math.random() < 15/36; }
-    else if (choice === 'over') { won = Math.random() < 15/36; }
-    else if (choice === 'seven') { won = Math.random() < 6/36; }
+    if (choice === 'under') { won = Math.random() < 15 / 36; }
+    else if (choice === 'over') { won = Math.random() < 15 / 36; }
+    else if (choice === 'seven') { won = Math.random() < 6 / 36; }
 
     let finalSum = 0;
     if (won) {
@@ -1285,17 +1657,17 @@ function playDice(choice) {
         if (choice === 'over') finalSum = Math.floor(Math.random() * 5) + 8; // 8..12
         if (choice === 'seven') finalSum = 7;
     } else {
-        if (choice === 'under') finalSum = Math.random() < 6/21 ? 7 : Math.floor(Math.random() * 5) + 8; // 7 or over
-        if (choice === 'over') finalSum = Math.random() < 6/21 ? 7 : Math.floor(Math.random() * 5) + 2; // 7 or under
+        if (choice === 'under') finalSum = Math.random() < 6 / 21 ? 7 : Math.floor(Math.random() * 5) + 8; // 7 or over
+        if (choice === 'over') finalSum = Math.random() < 6 / 21 ? 7 : Math.floor(Math.random() * 5) + 2; // 7 or under
         if (choice === 'seven') {
             do { finalSum = Math.floor(Math.random() * 11) + 2; } while (finalSum === 7);
         }
     }
-    
+
     const possibleSplits = [];
-    for (let i=1; i<=6; i++) {
-        for (let j=1; j<=6; j++) {
-            if (i+j === finalSum) possibleSplits.push([i, j]);
+    for (let i = 1; i <= 6; i++) {
+        for (let j = 1; j <= 6; j++) {
+            if (i + j === finalSum) possibleSplits.push([i, j]);
         }
     }
     const split = possibleSplits[Math.floor(Math.random() * possibleSplits.length)];
@@ -1377,8 +1749,11 @@ function playDice(choice) {
 function createCoinGame() {
     return `
         <h2>🟡 Орел и 🟠 Решка</h2>
-        <div class="odds-display">
-            <strong>Шансы:</strong> Идеальные 50/50. Выплата 2 к 1.
+        <div class="beautiful-formula">
+            <div class="formula-title">📐 Схема Бернулли (Независимые испытания)</div>
+            <div class="formula-content">P(Орел) = P(Решка) = 1/2 = <span style="color: #2ecc71;">50%</span></div>
+            <div class="formula-content">Выплата: <span style="color: #f1c40f;">2 к 1</span> (ставка удваивается при победе)</div>
+            <div class="formula-content">E(X) = (0.5 × 1) − (0.5 × 1) = <span style="color:#2ecc71;">0 (честная игра)</span></div>
         </div>
         
         <div class="input-group" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
@@ -1498,8 +1873,11 @@ let bjBet = 0;
 function createBlackjackGame() {
     return `
         <h2>🃏 Блэкджек</h2>
-        <div class="odds-display">
-            <strong>Стратегия:</strong> Дилер берет карты до 17. Блэкджек платит 3:2.
+        <div class="beautiful-formula">
+            <div class="formula-title">📐 Условная вероятность P(A|B)</div>
+            <div class="formula-content">P(Блэкджек) = 2 × (4/52 × 16/51) &approx; <span style="color: #2ecc71;">4.83%</span></div>
+            <div class="formula-content">Выплата за Блэкджек: <span style="color: #f1c40f;">3:2</span> | Обычная победа: <span style="color: #f1c40f;">1:1</span></div>
+            <div class="formula-content">House Edge (Базовая стратегия) = <span style="color:#e74c3c;">0.5%</span></div>
         </div>
         
         <div class="input-group" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
@@ -1853,8 +2231,11 @@ function switchProbTab(tabId) {
 function createRPSGame() {
     return `
         <h2>✂️ Камень, Ножницы, Бумага</h2>
-        <div class="odds-display">
-            <strong>Вероятности:</strong> Победа 33.3% | Ничья 33.3% | Поражение 33.3%
+        <div class="beautiful-formula">
+            <div class="formula-title">📐 Равновесие Нэша (Теория Игр)</div>
+            <div class="formula-content">P(Победа) = P(Ничья) = P(Поражение) = 1/3 &approx; <span style="color: #2ecc71;">33.33%</span></div>
+            <div class="formula-content">Выплата: <span style="color: #f1c40f;">2 к 1</span> при победе. Возврат ставки при ничьей.</div>
+            <div class="formula-content">E(X) = (1/3 × 1) − (1/3 × 1) + (1/3 × 0) = <span style="color:#2ecc71;">0 (честная игра)</span></div>
         </div>
         
         <div class="input-group" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
@@ -1941,17 +2322,17 @@ function playRPS(playerMove) {
 
 function finishRPS(playerMove, bet) {
     const icons = { 'rock': '🗿', 'scissors': '✂️', 'paper': '📄' };
-    
+
     // Чистая вероятность (1/3 на каждое)
     const rand = Math.random();
     let result = '';
-    if (rand < 1/3) result = 'win';
-    else if (rand < 2/3) result = 'draw';
+    if (rand < 1 / 3) result = 'win';
+    else if (rand < 2 / 3) result = 'draw';
     else result = 'lose';
 
     const winsAgainst = { 'rock': 'scissors', 'scissors': 'paper', 'paper': 'rock' };
     const losesAgainst = { 'rock': 'paper', 'scissors': 'rock', 'paper': 'scissors' };
-    
+
     let aiMove = '';
     if (result === 'win') aiMove = winsAgainst[playerMove];
     else if (result === 'draw') aiMove = playerMove;
@@ -2171,12 +2552,12 @@ function runBettingSimulation() {
     const betAmount = parseInt(document.getElementById('betting-amount').value);
 
     if (balance <= 0) {
-        alert('У вас нулевой баланс! Пожалуйста, пополните депозит.');
+        showAlert('У вас нулевой баланс! Пожалуйста, пополните депозит.');
         openDepositModal();
         return;
     }
     if (betAmount <= 0 || betAmount > balance) {
-        alert('Недостаточно средств на балансе!');
+        showAlert('Недостаточно средств на балансе!');
         return;
     }
 
@@ -2305,13 +2686,13 @@ switchSection = function (sectionId, clickedElement) {
 let simChartInstance = null;
 
 function runSimulation(gameType) {
-    const betInputId = gameType === 'slots' ? 'slot-bet' : 
-                       gameType === 'wheel' ? 'wheel-bet' :
-                       gameType === 'dice' ? 'dice-bet' :
-                       gameType === 'coin' ? 'coin-bet' :
-                       gameType === 'blackjack' ? 'bj-bet' :
-                       gameType === 'rps' ? 'rps-bet' :
-                       gameType === 'betting' ? 'betting-amount' : 'bet-amount';
+    const betInputId = gameType === 'slots' ? 'slot-bet' :
+        gameType === 'wheel' ? 'wheel-bet' :
+            gameType === 'dice' ? 'dice-bet' :
+                gameType === 'coin' ? 'coin-bet' :
+                    gameType === 'blackjack' ? 'bj-bet' :
+                        gameType === 'rps' ? 'rps-bet' :
+                            gameType === 'betting' ? 'betting-amount' : 'bet-amount';
     const betInput = document.getElementById(betInputId);
     if (!betInput) return;
     const bet = parseInt(betInput.value);
@@ -2341,8 +2722,8 @@ function runSimulation(gameType) {
     for (let i = 1; i <= iterations; i++) {
         currentBalance -= bet;
         let payout = 0;
-        
-        switch(gameType) {
+
+        switch (gameType) {
             case 'roulette': payout = fastPlayRoulette(bet); break;
             case 'slots': payout = fastPlaySlots(bet); break;
             case 'wheel': payout = fastPlayWheel(bet); break;
@@ -2354,7 +2735,7 @@ function runSimulation(gameType) {
         }
 
         currentBalance += payout;
-        
+
         let resultType = payout > bet ? 'win' : payout === bet ? 'draw' : 'lose';
         if (resultType === 'win') wins++;
         else if (resultType === 'lose') losses++;
@@ -2368,11 +2749,12 @@ function runSimulation(gameType) {
     }
 
     balance = currentBalance;
+    localStorage.setItem('casinoBalance', balance);
     // update global balance display
     const balanceDisplay = document.getElementById('balance-display');
     if (balanceDisplay) balanceDisplay.textContent = Math.floor(balance);
     updateGlobalBalance();
-    
+
     const totalWager = bet * iterations;
     const profit = currentBalance - initialBalance;
     const totalPayout = totalWager + profit;
@@ -2403,8 +2785,9 @@ function runSimulation(gameType) {
         timestamp: Date.now()
     });
     if (betHistory.length > 50) betHistory.pop();
+    saveBetHistory();
     renderBetHistory();
-    
+
     showSimulationResult(initialBalance, currentBalance, iterations, bet, historyData, wins, draws, losses);
 }
 
@@ -2420,7 +2803,7 @@ function fastPlayWheel(bet) {
     // Шанс 25% (4 символа)
     return Math.random() < 0.25 ? bet * 4 : 0;
 }
-function fastPlayDice(bet) { 
+function fastPlayDice(bet) {
     // Вероятность финальной суммы > 7 = 15 вариантов из 36
     return Math.random() < (15 / 36) ? bet * 2.4 : 0;
 }
@@ -2461,10 +2844,10 @@ function fastPlayBetting(bet) {
 function showSimulationResult(initialBalance, finalBalance, iterations, bet, historyData, wins, draws, losses) {
     const modal = document.getElementById('simModal');
     if (!modal) return;
-    
+
     const profit = finalBalance - initialBalance;
     const profitClass = profit >= 0 ? 'win' : 'lose';
-    
+
     const isLight = document.body.classList.contains('light-theme');
     const headerColor = isLight ? '#2c3e50' : '#ecf0f1';
     const subColor = isLight ? '#7f8c8d' : '#bdc3c7';
@@ -2488,21 +2871,26 @@ function showSimulationResult(initialBalance, finalBalance, iterations, bet, his
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
 
-    createChart(historyData, initialBalance, finalBalance, profit >= 0);
+    // Даем браузеру 50мс на отрисовку модального окна (DOM paint) 
+    // перед тем как Chart.js начнет вычислять размеры Canvas. 
+    // Это предотвращает жесткие фризы при первом запуске симуляций!
+    setTimeout(() => {
+        createChart(historyData, initialBalance, finalBalance, profit >= 0);
+    }, 50);
 }
 
 function createChart(historyData, initialBalance, finalBalance, isProfit) {
     const ctx = document.getElementById('simChartCanvas').getContext('2d');
-    
+
     if (simChartInstance) {
         simChartInstance.destroy();
     }
-    
+
     const labels = historyData.map(d => d.iteration);
     labels.unshift(0);
     const dataPoints = historyData.map(d => Math.floor(d.balance));
     dataPoints.unshift(Math.floor(initialBalance));
-    
+
     const isLight = document.body.classList.contains('light-theme');
     const textColor = isLight ? '#2c3e50' : '#ecf0f1';
     const gridColor = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
@@ -2511,7 +2899,7 @@ function createChart(historyData, initialBalance, finalBalance, isProfit) {
     let gradient = ctx.createLinearGradient(0, 0, 0, 400);
     gradient.addColorStop(0, isProfit ? 'rgba(46, 204, 113, 0.5)' : 'rgba(231, 76, 60, 0.5)');
     gradient.addColorStop(1, 'rgba(0, 0, 0, 0.0)');
-    
+
     const borderColor = isProfit ? '#2ecc71' : '#e74c3c';
 
     simChartInstance = new Chart(ctx, {
@@ -2530,6 +2918,7 @@ function createChart(historyData, initialBalance, finalBalance, isProfit) {
             }]
         },
         options: {
+            animation: false, // Отключаем медленную анимацию, из-за которой симуляция казалась "зависшей" или лагала
             responsive: true,
             maintainAspectRatio: false,
             scales: {
@@ -2556,7 +2945,7 @@ function createChart(historyData, initialBalance, finalBalance, isProfit) {
                 legend: { labels: { color: textColor } },
                 tooltip: {
                     callbacks: {
-                        label: function(context) {
+                        label: function (context) {
                             return 'Баланс: $' + context.raw;
                         }
                     }
@@ -2573,4 +2962,5 @@ function closeSimulationDetails() {
         document.body.style.overflow = '';
     }
 }
+
 
