@@ -15,13 +15,14 @@ function showToast(message) {
         document.body.appendChild(toast);
     }
     toast.innerHTML = `<span style="font-size: 1.2rem; margin-right: 8px;">⚠️</span> ${message}`;
-    toast.className = 'custom-toast show';
+    toast.className = 'toast-notification';
 
     // Clear previous timeout if exists
     if (toast.timeoutId) clearTimeout(toast.timeoutId);
 
     toast.timeoutId = setTimeout(() => {
-        toast.classList.remove('show');
+        toast.classList.add('hiding');
+        setTimeout(() => toast.remove(), 500); // Remove from DOM after animation
     }, 3500);
 }
 
