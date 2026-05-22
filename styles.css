@@ -2212,15 +2212,15 @@ html {
 
 .dice-val {
     font-size: 4rem;
-    background: white;
-    color: black;
+    background: #ffffff !important;
+    color: #1A365D !important;
+    -webkit-text-fill-color: #1A365D !important;
     width: 80px;
     height: 80px;
-    /* Removed line-height, using flex for perfect centering */
     border-radius: 15px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+    border: 2px solid #000000 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
     display: flex;
-    /* Changed from inline-block */
     align-items: center;
     justify-content: center;
 }
@@ -4378,27 +4378,43 @@ body.light-theme .roulette-result-val.val-green {
     width: 100px;
     height: 100px;
     border-radius: 16px;
-    color: white !important;
-    text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.6);
-    box-shadow: inset 0px 0px 10px rgba(0, 0, 0, 0.3), 0px 8px 25px rgba(0, 0, 0, 0.5);
+    background: rgba(15, 23, 42, 0.8) !important;
+    border: 2px solid #334155 !important;
     margin: 15px auto;
-    font-size: 3rem;
-    font-weight: bold;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(0, 0, 0, 0.2);
 }
 
 .roulette-result-val.val-red {
-    background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
-    border: 3px solid #e74c3c;
+    background: rgba(239, 68, 68, 0.1) !important;
+    border-color: rgba(239, 68, 68, 0.5) !important;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.3) !important;
+}
+.roulette-result-val.val-red span {
+    color: #ef4444 !important;
+    -webkit-text-fill-color: #ef4444 !important;
+    text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
 }
 
 .roulette-result-val.val-black {
-    background: linear-gradient(135deg, #2c3e50, #1a252f) !important;
-    border: 3px solid #34495e;
+    background: rgba(148, 163, 184, 0.1) !important;
+    border-color: rgba(148, 163, 184, 0.5) !important;
+    box-shadow: 0 0 20px rgba(148, 163, 184, 0.2) !important;
+}
+.roulette-result-val.val-black span {
+    color: #cbd5e1 !important;
+    -webkit-text-fill-color: #cbd5e1 !important;
+    text-shadow: 0 0 10px rgba(148, 163, 184, 0.5);
 }
 
 .roulette-result-val.val-green {
-    background: linear-gradient(135deg, #2ecc71, #27ae60) !important;
-    border: 3px solid #2ecc71;
+    background: rgba(34, 197, 94, 0.1) !important;
+    border-color: rgba(34, 197, 94, 0.5) !important;
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.3) !important;
+}
+.roulette-result-val.val-green span {
+    color: #22c55e !important;
+    -webkit-text-fill-color: #22c55e !important;
+    text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
 }
 
 /* КРАСИВЫЕ ФОРМУЛЫ (LIQUID GLASS) */
@@ -5096,4 +5112,96 @@ body.light-theme div[style*="background: rgba(243, 156, 18, 0.1)"] {
     color: #b45309 !important;
     box-shadow: 0 2px 8px rgba(251, 191, 36, 0.15) !important;
     border-radius: 12px !important;
+}
+
+/* --- 26. Зеленое сукно для игр в светлой теме --- */
+body.light-theme #gameArea {
+    background: radial-gradient(circle at center, #1b5e20 0%, #0a3d13 100%) !important;
+    padding: 30px;
+    border-radius: 16px;
+    border: 4px solid #388e3c !important;
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.5), 0 10px 25px rgba(0,0,0,0.2) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    margin-bottom: 2rem;
+}
+
+body.light-theme #gameArea h2,
+body.light-theme #gameArea h3,
+body.light-theme #gameArea label,
+body.light-theme #gameArea p,
+body.light-theme #gameArea .probability-info,
+body.light-theme #gameArea .formula-content {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.6) !important;
+}
+
+body.light-theme #gameArea input[type="number"],
+body.light-theme #gameArea input[type="text"],
+body.light-theme #gameArea select {
+    background: #ffffff !important;
+    color: #1a252f !important;
+    -webkit-text-fill-color: #1a252f !important;
+    border: 2px solid #2e7d32 !important;
+    text-shadow: none !important;
+}
+
+body.light-theme #gameArea .game-display {
+    background: rgba(0, 0, 0, 0.45) !important;
+    border: 2px solid #4ade80 !important;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 4px 15px rgba(0,0,0,0.3) !important;
+}
+
+body.light-theme #gameArea .game-anim-text,
+body.light-theme #gameArea .game-anim-huge,
+body.light-theme #gameArea .result-message {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.4) !important;
+}
+
+body.light-theme #gameArea .result-message.win {
+    background: rgba(46, 125, 50, 0.9) !important;
+    border-color: #4ade80 !important;
+}
+
+body.light-theme #gameArea .result-message.lose {
+    background: rgba(183, 28, 28, 0.9) !important;
+    border-color: #ef4444 !important;
+}
+
+body.light-theme #gameArea .beautiful-formula {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+body.light-theme #gameArea .beautiful-formula .formula-title {
+    color: #bbf7d0 !important;
+    -webkit-text-fill-color: #bbf7d0 !important;
+}
+
+body.light-theme #gameArea .statistics {
+    background: rgba(0, 0, 0, 0.3) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+body.light-theme #gameArea .statistics .stat-label {
+    color: #e2e8f0 !important;
+    -webkit-text-fill-color: #e2e8f0 !important;
+}
+body.light-theme #gameArea .statistics .stat-value {
+    color: #4ade80 !important;
+    -webkit-text-fill-color: #4ade80 !important;
+}
+
+body.light-theme #gameArea .bj-table {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border: 2px solid rgba(255,255,255,0.2) !important;
+}
+
+body.light-theme #gameArea .dice-val {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+    border: 2px solid #000000 !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6) !important;
 }

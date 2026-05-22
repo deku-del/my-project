@@ -1191,9 +1191,11 @@ function playRoulette(color) {
     const maxSpins = 20;
     const interval = setInterval(() => {
         const tempNum = Math.floor(Math.random() * 37);
-        const tempColor = tempNum === 0 ? '#2ecc71' : (tempNum % 2 === 0 ? '#bdc3c7' : '#e74c3c');
+        const isLight = document.body.classList.contains('light-theme');
+        const blackCol = isLight ? '#1a252f' : '#bdc3c7';
+        const tempColor = tempNum === 0 ? '#2ecc71' : (tempNum % 2 === 0 ? blackCol : '#e74c3c');
 
-        animDisplay.innerHTML = `<span style="color: ${tempColor}; font-size: 3rem; display: inline-block; transform: scale(${1 + Math.random() * 0.2}); opacity: 0.8;">${tempNum}</span>`;
+        animDisplay.innerHTML = `<span style="color: ${tempColor} !important; font-size: 3rem; display: inline-block; transform: scale(${1 + Math.random() * 0.2}); opacity: 0.8;">${tempNum}</span>`;
         spins++;
 
         if (spins >= maxSpins) {
