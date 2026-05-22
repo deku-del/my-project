@@ -65,8 +65,7 @@
                     <span class="nav-balance-icon" style="filter: drop-shadow(0 0 5px rgba(243,156,18,0.5));">💰</span>
                     <span class="nav-balance-val" id="nav-global-balance">$0</span>
                 </div>
-                <button class="nav-balance-reset" onclick="resetCasinoBalance()"
-                    title="Установить баланс (Депозит)">💳</button>
+                <button class="nav-balance-reset" onclick="resetCasinoBalance()" title="Сбросить баланс">💳</button>
                 <button id="theme-toggle" class="theme-toggle-btn" onclick="toggleTheme()"
                     title="Сменить тему">☀️</button>
             </div>
@@ -106,10 +105,11 @@
                         <li>Мы <strong>не поощряем азартные игры</strong> и не гарантируем выигрыши.</li>
                         <li>Теория вероятности показывает, что в <strong>долгосрочной перспективе казино всегда
                                 побеждает</strong>.</li>
-                        <li>Все представленные симуляторы работают с <strong>условным балансом</strong> и предназначены
+                        <li>Все представленные симуляторы работают с <strong>"условным депозитом"</strong> и
+                            предназначены
                             исключительно для обучения.</li>
                         <li>Если вы испытываете проблемы с азартными играми, обратитесь за помощью к специалистам.</li>
-                        <li>Авторы сайта не несут ответственности за любые потери, связанные с использованием информации
+                        <li>Автор сайта не несет ответственности за любые потери, связанные с использованием информации
                             на
                             сайте.</li>
                     </ul>
@@ -119,10 +119,8 @@
                 <div class="feature-grid">
                     <div class="feature-card">
                         <h4>🎮 Интерактивные Симуляторы</h4>
-                        <p>Играйте в рулетку, слоты, блэкджек, делайте ставки на футбол и другие игры с нужным вам
-                            балансом (от $1). Узнайте на
-                            практике,
-                            как работает теория вероятности.</p>
+                        <p>Играйте в рулетку, слоты, блэкджек, делайте ставки на футбол и другие игры. Узнайте на
+                            практике, как работает теория вероятности.</p>
                     </div>
                     <div class="feature-card">
                         <h4>📊 Теория Вероятности</h4>
@@ -136,8 +134,8 @@
                     </div>
                     <div class="feature-card">
                         <h4>🔬 Применение в Жизни</h4>
-                        <p>Узнайте, как теория вероятности применяется в медицине, финансах, страховании и других
-                            сферах.
+                        <p>Узнайте, как теория вероятности применяется в рельной жизни: Медицине, метеорологии и
+                            логистики.
                         </p>
                     </div>
                 </div>
@@ -150,8 +148,10 @@
                         </li>
                         <li><strong>Изучите теорию</strong> - переходите к разделам с формулами и объяснениями</li>
                         <li><strong>Попробуйте симуляторы</strong> - испытайте теорию вероятности на практике</li>
+                        <li><strong>Делайте ставки на футбол</strong> - проверьте свои расчеты в условиях реальных
+                            спортивных событий</li>
                         <li><strong>Изучайте примеры</strong> - смотрите, как вероятность работает в реальной жизни</li>
-                        <li><strong>Посмотрите мифы</strong> - ИЗучите все мифы связанные с азартными играми</li>
+                        <li><strong>Посмотрите мифы</strong> - Изучите все мифы связанные с азартными играми</li>
                     </ol>
                 </div>
 
@@ -288,7 +288,8 @@
                     <strong style="color: #9b59b6;">🎓 На языке теории вероятности:</strong>
                     <p style="margin-top: 0.5rem;">Математическое ожидание выигрыша: E(X) = P(выигрыш)·(выплата) +
                         P(проигрыш)·(-ставка) = (18/37)·1 + (19/37)·(-1) = -1/37 ≈ -0.027. Это несправедливая игра
-                        (house edge = 2.7%). Закон больших чисел гарантирует, что казино альзегда выигрывает на длинной
+                        (Преимущество казино = 2.7%). Закон больших чисел гарантирует, что казино альзегда выигрывает на
+                        длинной
                         дистанции.</p>
                 </div>
             </div>
@@ -396,7 +397,7 @@
                 <div
                     style="background: rgba(155, 89, 182, 0.1); border-left: 3px solid #9b59b6; padding: 1rem; margin-top: 1rem; border-radius: 5px;">
                     <strong style="color: #9b59b6;">🎓 На языке теории вероятности:</strong>
-                    <p style="margin-top: 0.5rem;">Оптимальная стратегия (basic strategy) минимизирует математическое
+                    <p style="margin-top: 0.5rem;">Оптимальная стратегия минимизирует математическое
                         ожидание проигрыша. Счет карт (например, Hi-Lo) может дать преимущество игроку (~1%), но это
                         требует высокой концентрации. P(bust | sum=20) низка, но P(bust | sum=16) ≈ 62% при взятии
                         карты.</p>
@@ -875,7 +876,14 @@
         <section id="history" class="section">
             <h2>📜 История ваших ставок</h2>
             <div class="bet-history-panel" style="margin-top: 0;">
-                <h3 class="bh-title">Вся статистика</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 class="bh-title" style="margin: 0;">Вся статистика</h3>
+                    <button onclick="clearBetHistoryOnly()"
+                        style="padding: 8px 18px; background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: all 0.3s ease;"
+                        onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 15px rgba(231,76,60,0.4)'"
+                        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'">Сбросить историю
+                        🗑</button>
+                </div>
                 <div id="bet-history-counters" class="bh-counters">
                     <span class="bh-counter bh-win">✅ 0</span>
                     <span class="bh-counter bh-lose">❌ 0</span>
@@ -1723,6 +1731,14 @@
         <section id="calculator" class="section">
             <h2>📊 Калькулятор потерь — «Что я мог бы купить»</h2>
 
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <span></span>
+                <button onclick="clearCalculator()"
+                    style="padding: 8px 18px; background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: all 0.3s ease;"
+                    onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 15px rgba(231,76,60,0.4)'"
+                    onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'">Сбросить калькулятор
+                    🗑</button>
+            </div>
             <div class="calc-hero">
                 <div class="calc-loss-side">
                     <div class="calc-loss-label">Ваши потери</div>
@@ -1737,12 +1753,6 @@
                 </div>
             </div>
 
-            <div class="calc-dynamic-section">
-                <h3 class="calc-dyn-title">🛒 На что хватило бы ваших потерь</h3>
-                <div class="calc-dynamic-grid" id="calc-dynamic-grid">
-                    <span class="calc-dyn-empty">Потерь пока нет — так держать! 🎉</span>
-                </div>
-            </div>
 
             <div class="content-block"
                 style="border-left-color: #e74c3c; background: rgba(231, 76, 60, 0.1); margin-top: 2rem;">
@@ -2037,14 +2047,21 @@
         <div class="modal-content" style="max-width: 400px; text-align: center;">
             <span class="close" onclick="closeDepositModal()">&times;</span>
             <h2>💳 Пополнить баланс</h2>
+            <div
+                style="text-align: center; color: #f39c12; font-weight: bold; font-size: 1.3rem; margin-bottom: 1rem; padding: 0.8rem; background: rgba(243, 156, 18, 0.1); border-radius: 12px; border: 1px solid rgba(243, 156, 18, 0.2);">
+                💰 Текущий баланс: $<span id="deposit-current-balance">0</span>
+            </div>
             <p style="color: #bdc3c7; margin-bottom: 1.5rem;">Введите сумму с которой вы "входите" в казино.</p>
             <div class="betting-amount-container" style="margin-bottom: 1.5rem;">
                 <label for="deposit-amount">Депозит ($):</label>
                 <input type="number" id="deposit-amount" class="betting-amount-input" value="1000" min="1" max="100000"
                     style="font-size: 1.5rem; text-align: center; width: 100%;">
             </div>
-            <button class="btn-play" style="width: 100%; background: #2ecc71;" onclick="submitDeposit()">Установить
+            <button class="btn-play" style="width: 100%; background: #2ecc71; margin-bottom: 0.8rem;"
+                onclick="submitDeposit()">Установить
                 баланс</button>
+            <button class="btn-play" style="width: 100%; background: #e74c3c;" onclick="resetBalanceTo3000()">🔄
+                Сбросить баланс до $0</button>
         </div>
     </div>
 
