@@ -16,7 +16,7 @@
     </header>
 
     <nav>
-        <button class="menu-toggle" onclick="toggleMenu()">☰ Меню</button>
+        <button type="button" class="menu-toggle" onclick="toggleMenu()" aria-label="Открыть меню навигации">☰ Меню</button>
         <div class="nav-menu" id="navMenu">
             <button class="nav-btn active" onclick="switchSection('home', this); toggleMenu()">🏠 Главная</button>
 
@@ -65,9 +65,9 @@
                     <span class="nav-balance-icon" style="filter: drop-shadow(0 0 5px rgba(243,156,18,0.5));">💰</span>
                     <span class="nav-balance-val" id="nav-global-balance">$0</span>
                 </div>
-                <button class="nav-balance-reset" onclick="resetCasinoBalance()" title="Сбросить баланс">💳</button>
-                <button id="theme-toggle" class="theme-toggle-btn" onclick="toggleTheme()"
-                    title="Сменить тему">☀️</button>
+                <button type="button" class="nav-balance-reset" onclick="resetCasinoBalance()" title="Пополнить баланс" aria-label="Пополнить или изменить баланс">💳</button>
+                <button type="button" id="theme-toggle" class="theme-toggle-btn" onclick="toggleTheme()"
+                    title="Сменить тему" aria-label="Включить светлую тему">☀️</button>
             </div>
         </div>
     </nav>
@@ -260,8 +260,8 @@
                     0% до 100%), где:</p>
                 <div class="formula">P(A) = Количество благоприятных исходов / Общее количество возможных исходов</div>
                 <div class="formula">0 ≤ P(A) ≤ 1</div>
-                <p><strong>Пример:</strong> При броске монеты есть 2 равновероятных исхода (орел или решка). Вероятность
-                    выпадения орла = 1/2 = 0.5 = 50%</p>
+                <p><strong>Пример:</strong> При броске монетки есть 2 равновероятных исхода (желтый или оранжевый). Вероятность
+                    выпадения желтой стороны = 1/2 = 0.5 = 50%</p>
             </div>
 
             <div class="content-block">
@@ -351,19 +351,19 @@
             </div>
 
             <div class="content-block">
-                <h3>🟡 Монета - Идеальная 50/50</h3>
-                <p><strong>Исходы:</strong> Орел или решка</p>
-                <div class="formula">P(орел) = 1/2 = 0.5 = 50%</div>
-                <div class="formula">P(решка) = 1/2 = 0.5 = 50%</div>
-                <div class="formula">P(орел n раз подряд) = (1/2)^n</div>
-                <div class="formula">P(орел 3 раза подряд) = (1/2)³ = 1/8 = 12.5%</div>
-                <p>Монета - единственный "справедливый" инструмент, если нет подвоха. Но даже здесь казино добавляет
+                <h3>🟡 Монетка — идеальная 50/50</h3>
+                <p><strong>Исходы:</strong> Желтый или оранжевый</p>
+                <div class="formula">P(желтый) = 1/2 = 0.5 = 50%</div>
+                <div class="formula">P(оранжевый) = 1/2 = 0.5 = 50%</div>
+                <div class="formula">P(желтый n раз подряд) = (1/2)^n</div>
+                <div class="formula">P(желтый 3 раза подряд) = (1/2)³ = 1/8 = 12.5%</div>
+                <p>Монетка — единственный «справедливый» инструмент, если нет подвоха. Но даже здесь казино добавляет
                     свое преимущество.</p>
 
                 <div
                     style="background: rgba(46, 204, 113, 0.1); border-left: 3px solid #2ecc71; padding: 1rem; margin-top: 1rem; border-radius: 5px;">
                     <strong style="color: #2ecc71;">📝 Простым языком:</strong>
-                    <p style="margin-top: 0.5rem;">Монета - самая честная игра: точно 50% на орла, 50% на решку. Но в
+                    <p style="margin-top: 0.5rem;">Монетка — самая честная игра: точно 50% на желтый, 50% на оранжевый. Но в
                         казино выплата обычно не 2:1, а 1.9:1, что дает казино небольшое преимущество. Выиграть 10 раз
                         подряд имеет шанс (1/2)¹⁰ = 0.1%, т.е. 1 из 1024!</p>
                 </div>
@@ -372,7 +372,7 @@
                     style="background: rgba(155, 89, 182, 0.1); border-left: 3px solid #9b59b6; padding: 1rem; margin-top: 1rem; border-radius: 5px;">
                     <strong style="color: #9b59b6;">🎓 На языке теории вероятности:</strong>
                     <p style="margin-top: 0.5rem;">Распределение Бернулли с p=0.5. Для n испытаний: P(k успехов) =
-                        C(n,k)·(0.5)ⁿ. При больших n сходится к нормальному распределению N(n/2, n/4) (ЦПТ). Монета -
+                        C(n,k)·(0.5)ⁿ. При больших n сходится к нормальному распределению N(n/2, n/4) (ЦПТ). Монетка —
                         идеальный пример симметричной игры с нулевым математическим ожиданием.</p>
                 </div>
             </div>
@@ -398,7 +398,7 @@
                     style="background: rgba(155, 89, 182, 0.1); border-left: 3px solid #9b59b6; padding: 1rem; margin-top: 1rem; border-radius: 5px;">
                     <strong style="color: #9b59b6;">🎓 На языке теории вероятности:</strong>
                     <p style="margin-top: 0.5rem;">Оптимальная стратегия минимизирует математическое
-                        ожидание проигрыша. Счет карт (например, Hi-Lo) может дать преимущество игроку (~1%), но это
+                        ожидание проигрыша. Счет карт (например, система Хай-Ло) может дать преимущество игроку (~1%), но это
                         требует высокой концентрации. P(bust | sum=20) низка, но P(bust | sum=16) ≈ 62% при взятии
                         карты.</p>
                 </div>
@@ -461,8 +461,8 @@
                 <h4 style="color: #f39c12; margin-top: 1rem;">Правило умножения (независимые события)</h4>
                 <p>P(A и B) = P(A) × P(B)</p>
                 <div class="formula">P(A ∩ B) = P(A) × P(B)</div>
-                <div class="formula">P(орел два раза подряд) = 0.5 × 0.5 = 0.25 = 25%</div>
-                <div class="formula">P(орел три раза подряд) = (0.5)³ = 0.125 = 12.5%</div>
+                <div class="formula">P(желтый два раза подряд) = 0.5 × 0.5 = 0.25 = 25%</div>
+                <div class="formula">P(желтый три раза подряд) = (0.5)³ = 0.125 = 12.5%</div>
 
                 <h4 style="color: #f39c12; margin-top: 1rem;">Правило умножения (зависимые события)</h4>
                 <p>P(A и B) = P(A) × P(B|A)</p>
@@ -474,8 +474,8 @@
                 </p>
                 <div class="formula">lim(n→∞) f(A) = P(A)</div>
                 <div class="formula">где f(A) = количество успешных исходов / общее количество испытаний</div>
-                <p><strong>Пример:</strong> При 10 бросаниях монеты можно получить 8 орлов (80%). Но при 10,000 бросков
-                    будет примерно 5,000 орлов (50%).</p>
+                <p><strong>Пример:</strong> При 10 бросаниях монетки можно получить 8 желтых (80%). Но при 10,000 бросков
+                    будет примерно 5,000 желтых (50%).</p>
             </div>
         </section>
 
@@ -568,7 +568,7 @@
                 <p>События A и B независимы, если:</p>
                 <div class="formula">P(A ∩ B) = P(A) × P(B)</div>
                 <div class="formula">P(A|B) = P(A)</div>
-                <p><strong>Пример:</strong> Броски монеты независимы. P(орел на 2-м броске | орел на 1-м) = P(орел) =
+                <p><strong>Пример:</strong> Броски монетки независимы. P(желтый на 2-м броске | желтый на 1-м) = P(желтый) =
                     0.5</p>
             </div>
 
@@ -601,7 +601,7 @@
                 <div class="formula">P(X = k) = C(n,k) × p^k × (1-p)^(n-k)</div>
                 <div class="formula">где C(n,k) = n! / (k!(n-k)!) - число сочетаний</div>
                 <div class="formula">C(n,k) = n! / (k!(n-k)!) = n × (n-1) × ... × (n-k+1) / k!</div>
-                <p><strong>Пример:</strong> Вероятность выпадения орла ровно 5 раз из 10 бросков монеты:</p>
+                <p><strong>Пример:</strong> Вероятность выпадения желтой стороны ровно 5 раз из 10 бросков монетки:</p>
                 <div class="formula">P(X = 5) = C(10,5) × (0.5)⁵ × (0.5)⁵ = 252 × 0.03125 = 7.875%</div>
             </div>
 
@@ -826,17 +826,17 @@
                     </div>
                 </div>
 
-                <!-- МОНЕТА -->
+                <!-- МОНЕТКА -->
                 <div class="game-card">
-                    <h3>🟡 Орел и решка</h3>
+                    <h3>🟡 Монетка</h3>
                     <p>2 исхода, классическая 50/50 ставка</p>
                     <div class="probability-info">
-                        <strong>Шанс орла:</strong> P = 1/2 = 50%<br>
-                        <strong>Шанс решки:</strong> P = 1/2 = 50%<br>
+                        <strong>Шанс желтого:</strong> P = 1/2 = 50%<br>
+                        <strong>Шанс оранжевого:</strong> P = 1/2 = 50%<br>
                         <strong>Выигрыш:</strong> 2:1
                     </div>
                     <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                        <button class="play-btn" onclick="openGame('coin')" style="flex: 1;">Играть в монету</button>
+                        <button class="play-btn" onclick="openGame('coin')" style="flex: 1;">Играть в монетку</button>
                         <button class="btn-details" onclick="openGameDetails('coin')"
                             style="flex: 0 0 auto; padding: 1rem 1.5rem; background: linear-gradient(135deg, #3498db, #2980b9); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.3s ease;">Подробно</button>
                     </div>
@@ -1594,9 +1594,9 @@
                 <h4>❌ Миф #1: "Следующий раз повезет больше"</h4>
                 <p><strong>Реальность:</strong> Это называется "Парадокс азартного игрока".
                 </p>
-                <p>Монета не имеет памяти. Вероятность решки остается 50% независимо от предыдущих результатов.</p>
-                <div class="formula">P(решка на 11-м броске | орел 10 раз подряд) = P(решка) = 50%</div>
-                <div class="formula">P(10 орлов подряд) = (1/2)¹⁰ = 1/1024 ≈ 0.098%</div>
+                <p>Монетка не имеет памяти. Вероятность оранжевой стороны остается 50% независимо от предыдущих результатов.</p>
+                <div class="formula">P(оранжевый на 11-м броске | желтый 10 раз подряд) = P(оранжевый) = 50%</div>
+                <div class="formula">P(10 желтых подряд) = (1/2)¹⁰ = 1/1024 ≈ 0.098%</div>
                 <p><strong>Почему это опасно:</strong> Люди, потеряв деньги, продолжают играть, думая, что "сейчас точно
                     повезет". Это приводит к еще большим потерям.</p>
             </div>
@@ -1605,7 +1605,7 @@
                 <h4>❌ Миф #2: "Есть система выигрыша в казино"</h4>
                 <p><strong>Реальность:</strong> Математически системы типа "Мартингейл" (удвоение ставки после
                     проигрыша) не работают.</p>
-                <p><strong>Пример:</strong> Вы играете в монету и ставите 1 доллар. Проиграли, ставите 2 доллара.
+                <p><strong>Пример:</strong> Вы играете в монетку и ставите 1 доллар. Проиграли, ставите 2 доллара.
                     Проиграли, ставите 4. И так далее...</p>
                 <p>Звучит логично, но:</p>
                 <ul>
@@ -1626,7 +1626,7 @@
                 <p><strong>Реальность:</strong> Чем больше играешь, тем выше вероятность проигрыша (закон больших
                     чисел).</p>
                 <p>Если преимущество казино 2.7% (рулетка), то:</p>
-                <div class="formula">Ожидаемый проигрыш = Ставка × House Edge × Количество ставок</div>
+                <div class="formula">Ожидаемый проигрыш = Ставка × преимущество казино × Количество ставок</div>
                 <ul>
                     <li>После 100 ставок по $1: потеря ~$2.70</li>
                     <li>После 1000 ставок по $1: потеря ~$27</li>
@@ -1657,7 +1657,7 @@
                         <td>-2% до -15% на каждую ставку</td>
                     </tr>
                     <tr>
-                        <td>🟡 Орел/Решка</td>
+                        <td>🟡 Монетка</td>
                         <td>0-5%</td>
                         <td>0% до -5% на каждую ставку</td>
                     </tr>
@@ -1693,7 +1693,7 @@
                     ярким. На выборке 1000 игр математика побеждает везение.</p>
                 <p><strong>Это называется "закон больших чисел".</strong> Вероятности стремятся к своим теоретическим
                     значениям только при большом количестве испытаний.</p>
-                <div class="formula">P(100 орлов подряд) = (1/2)¹⁰⁰ = 1 / (2¹⁰⁰) ≈ 7.9 × 10⁻³¹</div>
+                <div class="formula">P(100 желтых подряд) = (1/2)¹⁰⁰ = 1 / (2¹⁰⁰) ≈ 7.9 × 10⁻³¹</div>
                 <p>Если вы выигрывали 100 раз подряд, это не значит, что вы везучий. Это значит, что произошло
                     статистически практически невозможное событие (вероятность 1 к 10³⁰), или казино вас обманывает!</p>
             </div>
@@ -1894,47 +1894,50 @@
                     </div>
                 </div>
 
-                <div class="betting-inputs-grid">
-                    <div class="betting-input-group">
-                        <label class="betting-label">
-                            <span>xG Хозяев</span>
-                            <span class="betting-label-value" id="xg-home-display">1.50</span>
-                        </label>
-                        <input type="range" id="xg-home" class="betting-slider" min="0.1" max="4.0" step="0.05"
-                            value="1.50" oninput="updateBettingOdds()">
-                        <div class="betting-slider-labels">
-                            <span>0.1</span>
-                            <span>2.0</span>
-                            <span>4.0</span>
+                <fieldset class="a11y-fieldset betting-params-fieldset">
+                    <legend>Параметры расчёта коэффициентов</legend>
+                    <div class="betting-inputs-grid">
+                        <div class="betting-input-group">
+                            <label class="betting-label" for="xg-home">
+                                <span>xG Хозяев</span>
+                                <span class="betting-label-value" id="xg-home-display">1.50</span>
+                            </label>
+                            <input type="range" id="xg-home" class="betting-slider" min="0.1" max="4.0" step="0.05"
+                                value="1.50" oninput="updateBettingOdds()" aria-label="Ожидаемые голы хозяев (xG), от 0.1 до 4.0">
+                            <div class="betting-slider-labels" aria-hidden="true">
+                                <span>0.1</span>
+                                <span>2.0</span>
+                                <span>4.0</span>
+                            </div>
+                        </div>
+                        <div class="betting-input-group">
+                            <label class="betting-label" for="xg-away">
+                                <span>xG Гостей</span>
+                                <span class="betting-label-value" id="xg-away-display">1.20</span>
+                            </label>
+                            <input type="range" id="xg-away" class="betting-slider" min="0.1" max="4.0" step="0.05"
+                                value="1.20" oninput="updateBettingOdds()" aria-label="Ожидаемые голы гостей (xG), от 0.1 до 4.0">
+                            <div class="betting-slider-labels" aria-hidden="true">
+                                <span>0.1</span>
+                                <span>2.0</span>
+                                <span>4.0</span>
+                            </div>
+                        </div>
+                        <div class="betting-input-group betting-input-full">
+                            <label class="betting-label" for="betting-margin">
+                                <span>Маржа букмекера</span>
+                                <span class="betting-label-value" id="margin-display">5%</span>
+                            </label>
+                            <input type="range" id="betting-margin" class="betting-slider betting-slider-margin" min="0"
+                                max="20" step="0.5" value="5" oninput="updateBettingOdds()" aria-label="Маржа букмекера в процентах, от 0 до 20">
+                            <div class="betting-slider-labels" aria-hidden="true">
+                                <span>0%</span>
+                                <span>10%</span>
+                                <span>20%</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="betting-input-group">
-                        <label class="betting-label">
-                            <span>xG Гостей</span>
-                            <span class="betting-label-value" id="xg-away-display">1.20</span>
-                        </label>
-                        <input type="range" id="xg-away" class="betting-slider" min="0.1" max="4.0" step="0.05"
-                            value="1.20" oninput="updateBettingOdds()">
-                        <div class="betting-slider-labels">
-                            <span>0.1</span>
-                            <span>2.0</span>
-                            <span>4.0</span>
-                        </div>
-                    </div>
-                    <div class="betting-input-group betting-input-full">
-                        <label class="betting-label">
-                            <span>Маржа букмекера</span>
-                            <span class="betting-label-value" id="margin-display">5%</span>
-                        </label>
-                        <input type="range" id="betting-margin" class="betting-slider betting-slider-margin" min="0"
-                            max="20" step="0.5" value="5" oninput="updateBettingOdds()">
-                        <div class="betting-slider-labels">
-                            <span>0%</span>
-                            <span>10%</span>
-                            <span>20%</span>
-                        </div>
-                    </div>
-                </div>
+                </fieldset>
             </div>
 
             <!-- БЛОК В: СИМУЛЯТОР -->
@@ -1944,34 +1947,36 @@
                 <p style="text-align: center; color: #a0a8b4; margin-bottom: 1.5rem;">Выберите исход, на который хотите
                     поставить. Коэффициенты рассчитаны по распределению Пуассона.</p>
 
-                <!-- Табло коэффициентов -->
-                <div class="betting-odds-board">
-                    <div class="odds-card" id="odds-p1" onclick="placeBet('p1')">
-                        <div class="odds-card-label">П1 (Хозяева)</div>
-                        <div class="odds-card-value" id="odds-p1-val">—</div>
-                        <div class="odds-card-prob" id="odds-p1-prob"></div>
+                <fieldset class="a11y-fieldset betting-outcomes-fieldset">
+                    <legend>Выберите исход ставки</legend>
+                    <div class="betting-odds-board" role="radiogroup" aria-label="Исходы матча">
+                        <button type="button" class="odds-card" id="odds-p1" onclick="placeBet('p1')" aria-pressed="false" aria-label="П1, победа хозяев">
+                            <span class="odds-card-label">П1 (Хозяева)</span>
+                            <span class="odds-card-value" id="odds-p1-val">—</span>
+                            <span class="odds-card-prob" id="odds-p1-prob"></span>
+                        </button>
+                        <button type="button" class="odds-card" id="odds-x" onclick="placeBet('x')" aria-pressed="false" aria-label="Ничья">
+                            <span class="odds-card-label">Х (Ничья)</span>
+                            <span class="odds-card-value" id="odds-x-val">—</span>
+                            <span class="odds-card-prob" id="odds-x-prob"></span>
+                        </button>
+                        <button type="button" class="odds-card" id="odds-p2" onclick="placeBet('p2')" aria-pressed="false" aria-label="П2, победа гостей">
+                            <span class="odds-card-label">П2 (Гости)</span>
+                            <span class="odds-card-value" id="odds-p2-val">—</span>
+                            <span class="odds-card-prob" id="odds-p2-prob"></span>
+                        </button>
+                        <button type="button" class="odds-card" id="odds-over" onclick="placeBet('over')" aria-pressed="false" aria-label="Тотал больше 2.5">
+                            <span class="odds-card-label">Тотал Б 2.5</span>
+                            <span class="odds-card-value" id="odds-over-val">—</span>
+                            <span class="odds-card-prob" id="odds-over-prob"></span>
+                        </button>
+                        <button type="button" class="odds-card" id="odds-under" onclick="placeBet('under')" aria-pressed="false" aria-label="Тотал меньше 2.5">
+                            <span class="odds-card-label">Тотал М 2.5</span>
+                            <span class="odds-card-value" id="odds-under-val">—</span>
+                            <span class="odds-card-prob" id="odds-under-prob"></span>
+                        </button>
                     </div>
-                    <div class="odds-card" id="odds-x" onclick="placeBet('x')">
-                        <div class="odds-card-label">Х (Ничья)</div>
-                        <div class="odds-card-value" id="odds-x-val">—</div>
-                        <div class="odds-card-prob" id="odds-x-prob"></div>
-                    </div>
-                    <div class="odds-card" id="odds-p2" onclick="placeBet('p2')">
-                        <div class="odds-card-label">П2 (Гости)</div>
-                        <div class="odds-card-value" id="odds-p2-val">—</div>
-                        <div class="odds-card-prob" id="odds-p2-prob"></div>
-                    </div>
-                    <div class="odds-card" id="odds-over" onclick="placeBet('over')">
-                        <div class="odds-card-label">Тотал Б 2.5</div>
-                        <div class="odds-card-value" id="odds-over-val">—</div>
-                        <div class="odds-card-prob" id="odds-over-prob"></div>
-                    </div>
-                    <div class="odds-card" id="odds-under" onclick="placeBet('under')">
-                        <div class="odds-card-label">Тотал М 2.5</div>
-                        <div class="odds-card-value" id="odds-under-val">—</div>
-                        <div class="odds-card-prob" id="odds-under-prob"></div>
-                    </div>
-                </div>
+                </fieldset>
 
                 <div id="betting-selected-info" class="betting-selected-info" style="display: none;">
                     <div>
@@ -1980,19 +1985,22 @@
                         <span> с коэффициентом </span>
                         <strong id="betting-selected-odds">—</strong>
                     </div>
-                    <div class="betting-amount-container"
-                        style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; margin-top: 1rem;">
-                        <div style="flex: 1; min-width: 150px;">
-                            <label for="betting-amount">Сумма ставки ($):</label>
-                            <input type="number" id="betting-amount" class="betting-amount-input" value="100" min="1"
-                                max="100000">
+                    <fieldset class="a11y-fieldset betting-stake-fieldset">
+                        <legend>Сумма и параметры симуляции</legend>
+                        <div class="betting-amount-container"
+                            style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; margin-top: 0;">
+                            <div style="flex: 1; min-width: 150px;">
+                                <label for="betting-amount">Сумма ставки ($):</label>
+                                <input type="text" id="betting-amount" class="money-input betting-amount-input" inputmode="numeric" value="100" min="1"
+                                    max="100000">
+                            </div>
+                            <div style="flex: 1; min-width: 150px;">
+                                <label for="betting-sim-iters">Итераций симуляции (1-200):</label>
+                                <input type="number" id="betting-sim-iters" class="betting-amount-input" min="1" max="200"
+                                    value="100" aria-label="Количество итераций симуляции, от 1 до 200">
+                            </div>
                         </div>
-                        <div style="flex: 1; min-width: 150px;">
-                            <label for="betting-sim-iters">Итераций симуляции (1-200):</label>
-                            <input type="number" id="betting-sim-iters" class="betting-amount-input" min="1" max="200"
-                                value="100">
-                        </div>
-                    </div>
+                    </fieldset>
                 </div>
 
                 <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
@@ -2039,7 +2047,7 @@
     <!-- МОДАЛЬНОЕ ОКНО ИГРЫ -->
     <div id="gameModal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="closeGame()">&times;</span>
+            <button type="button" class="close" onclick="closeGame()" aria-label="Закрыть игру">&times;</button>
             <div id="gameArea"></div>
         </div>
     </div>
@@ -2047,7 +2055,7 @@
     <!-- МОДАЛЬНОЕ ОКНО ДЕТАЛЕЙ ИГРЫ -->
     <div id="detailsModal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="closeGameDetails()">&times;</span>
+            <button type="button" class="close" onclick="closeGameDetails()" aria-label="Закрыть описание игры">&times;</button>
             <div id="detailsArea"></div>
         </div>
     </div>
@@ -2055,7 +2063,7 @@
     <!-- МОДАЛЬНОЕ ОКНО ДЕПОЗИТА -->
     <div id="depositModal" class="modal">
         <div class="modal-content" style="max-width: 400px; text-align: center;">
-            <span class="close" onclick="closeDepositModal()">&times;</span>
+            <button type="button" class="close" onclick="closeDepositModal()" aria-label="Закрыть окно депозита">&times;</button>
             <h2>💳 Пополнить баланс</h2>
             <div
                 style="text-align: center; color: #f39c12; font-weight: bold; font-size: 1.3rem; margin-bottom: 1rem; padding: 0.8rem; background: rgba(243, 156, 18, 0.1); border-radius: 12px; border: 1px solid rgba(243, 156, 18, 0.2);">
@@ -2064,8 +2072,8 @@
             <p style="color: #bdc3c7; margin-bottom: 1.5rem;">Введите сумму с которой вы "входите" в казино.</p>
             <div class="betting-amount-container" style="margin-bottom: 1.5rem;">
                 <label for="deposit-amount">Депозит ($):</label>
-                <input type="number" id="deposit-amount" class="betting-amount-input" value="1000" min="1" max="100000"
-                    style="font-size: 1.5rem; text-align: center; width: 100%;">
+                <input type="text" id="deposit-amount" class="money-input betting-amount-input" inputmode="numeric" value="1000" data-default-value="1000" min="1" max="1000000"
+                    style="text-align: center; width: 100%;" aria-label="Сумма депозита в долларах">
             </div>
             <button class="btn-play" style="width: 100%; background: #2ecc71; margin-bottom: 0.8rem;"
                 onclick="submitDeposit()">Установить
@@ -2078,7 +2086,7 @@
     <!-- МОДАЛЬНОЕ ОКНО СИМУЛЯЦИИ (ГРАФИК) -->
     <div id="simModal" class="modal">
         <div class="modal-content" style="max-width: 800px; width: 95%;">
-            <span class="close" onclick="closeSimulationDetails()">&times;</span>
+            <button type="button" class="close" onclick="closeSimulationDetails()" aria-label="Закрыть визуализацию симуляции">&times;</button>
             <h2>📊 Визуализатор Симуляции</h2>
             <div id="simResultHeader"></div>
             <div style="position: relative; height: 400px; width: 100%; margin-top: 20px;">
@@ -2086,6 +2094,8 @@
             </div>
         </div>
     </div>
+
+    <button type="button" id="scroll-to-top" class="scroll-to-top-btn" aria-label="Наверх" title="Наверх">↑</button>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="script.js"></script>

@@ -6,6 +6,265 @@ let gameStats = localStorage.getItem('casinoGameStats')
     ? JSON.parse(localStorage.getItem('casinoGameStats'))
     : { totalBets: 0, totalWins: 0, winCount: 0, loseCount: 0, drawCount: 0 };
 
+// ===== ФОРМАТИРОВАНИЕ ЧИСЕЛ =====
+function formatMoney(amount) {
+    return Math.floor(Number(amount) || 0).toLocaleString('en-US');
+}
+
+function formatUsd(amount) {
+    return '$' + formatMoney(amount);
+}
+
+function formatUsdSigned(amount) {
+    const n = Math.floor(Number(amount) || 0);
+    if (n > 0) return '+$' + formatMoney(n);
+    if (n < 0) return '-$' + formatMoney(Math.abs(n));
+    return '$0';
+}
+
+function parseMoneyInput(value) {
+    if (value === undefined || value === null) return NaN;
+    const cleaned = String(value).replace(/[^\d]/g, '');
+    if (cleaned === '') return NaN;
+    return parseInt(cleaned, 10);
+}
+
+function getMoneyInputValue(inputOrId) {
+    const input = typeof inputOrId === 'string' ? document.getElementById(inputOrId) : inputOrId;
+    if (!input) return NaN;
+    return parseMoneyInput(input.value);
+}
+
+const MONEY_INPUT_IDS = [
+    'deposit-amount', 'betting-amount',
+    'bet-amount', 'slot-bet', 'wheel-bet', 'dice-bet', 'coin-bet', 'bj-bet', 'rps-bet'
+];
+
+function enhanceMoneyInput(input) {
+    if (!input || input.dataset.moneyEnhanced) return;
+    input.dataset.moneyEnhanced = '1';
+    input.type = 'text';
+    input.inputMode = 'numeric';
+    input.autocomplete = 'off';
+    input.classList.add('money-input');
+
+    const min = parseInt(input.getAttribute('min'), 10) || 1;
+    const max = parseInt(input.getAttribute('max'), 10) || 1000000;
+
+    const applyFormat = () => {
+        let v = parseMoneyInput(input.value);
+        if (isNaN(v)) {
+            input.value = '';
+            return;
+        }
+        v = Math.max(min, Math.min(max, v));
+        input.value = formatMoney(v);
+    };
+
+    input.addEventListener('focus', () => {
+        if (input.id === 'deposit-amount') {
+            input.value = '';
+            return;
+        }
+        const v = parseMoneyInput(input.value);
+        input.value = isNaN(v) ? '' : String(v);
+        input.select();
+    });
+
+    input.addEventListener('input', () => {
+        if (input.id === 'deposit-amount') {
+            formatDepositInputLive(input);
+            return;
+        }
+        input.value = input.value.replace(/[^\d,]/g, '');
+    });
+
+    input.addEventListener('blur', applyFormat);
+
+    if (input.value) applyFormat();
+}
+
+function initAllMoneyInputs(root = document) {
+    MONEY_INPUT_IDS.forEach(id => {
+        const el = root.getElementById ? root.getElementById(id) : document.getElementById(id);
+        if (el) enhanceMoneyInput(el);
+    });
+    root.querySelectorAll?.('input.money-input').forEach(el => enhanceMoneyInput(el));
+}
+
+function setMoneyInputValue(inputOrId, amount) {
+    const input = typeof inputOrId === 'string' ? document.getElementById(inputOrId) : inputOrId;
+    if (!input) return;
+    const v = Math.floor(Number(amount) || 0);
+    input.value = formatMoney(v);
+}
+
+function formatDepositInputLive(input) {
+    const max = parseInt(input.getAttribute('max'), 10) || 1000000;
+    const digits = input.value.replace(/\D/g, '');
+    if (!digits) {
+        input.value = '';
+        return;
+    }
+    const v = Math.min(max, parseInt(digits, 10));
+    input.value = formatMoney(v);
+    const len = input.value.length;
+    input.setSelectionRange(len, len);
+}
+
+function debounce(fn, delay) {
+    let timer;
+    return function (...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), delay);
+    };
+}
+
+function throttle(fn, limit) {
+    let last = 0;
+    let scheduled = null;
+    return function (...args) {
+        const now = Date.now();
+        const remaining = limit - (now - last);
+        if (remaining <= 0) {
+            if (scheduled) {
+                clearTimeout(scheduled);
+                scheduled = null;
+            }
+            last = now;
+            fn.apply(this, args);
+        } else if (!scheduled) {
+            scheduled = setTimeout(() => {
+                last = Date.now();
+                scheduled = null;
+                fn.apply(this, args);
+            }, remaining);
+        }
+    };
+}
+
+// ===== ДОСТУПНОСТЬ (A11Y) =====
+function updateThemeToggleAriaLabel() {
+    const btn = document.getElementById('theme-toggle');
+    if (!btn) return;
+    const isLight = document.body.classList.contains('light-theme');
+    btn.setAttribute('aria-label', isLight ? 'Включить тёмную тему' : 'Включить светлую тему');
+}
+
+function isEmojiOrIconOnlyText(text) {
+    const trimmed = text.trim();
+    if (!trimmed) return true;
+    const withoutEmoji = trimmed.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}\uFE0F\u200D]/gu, '').replace(/[▾×↑☰✕]/g, '').trim();
+    return !/[\p{L}\p{N}]/u.test(withoutEmoji);
+}
+
+function labelEmojiOnlyButtons(root = document) {
+    const preset = {
+        'nav-balance-reset': 'Пополнить или изменить баланс',
+        'scroll-to-top': 'Прокрутить страницу наверх'
+    };
+    const scope = root.querySelectorAll ? root : document;
+    scope.querySelectorAll('button').forEach(btn => {
+        if (btn.getAttribute('aria-label')) return;
+        if (btn.id && preset[btn.id]) {
+            btn.setAttribute('aria-label', preset[btn.id]);
+            return;
+        }
+        if (btn.id === 'theme-toggle') {
+            updateThemeToggleAriaLabel();
+            return;
+        }
+        if (isEmojiOrIconOnlyText(btn.textContent)) {
+            const title = btn.getAttribute('title');
+            const fallback = btn.classList.contains('menu-toggle') ? 'Открыть или закрыть меню'
+                : btn.classList.contains('close') ? 'Закрыть окно'
+                : 'Кнопка действия';
+            btn.setAttribute('aria-label', title || fallback);
+        }
+    });
+}
+
+function enhanceBettingSliders(root = document) {
+    const sliders = [
+        { id: 'xg-home', label: 'Ожидаемые голы хозяев (xG), от 0.1 до 4.0' },
+        { id: 'xg-away', label: 'Ожидаемые голы гостей (xG), от 0.1 до 4.0' },
+        { id: 'betting-margin', label: 'Маржа букмекера в процентах, от 0 до 20' }
+    ];
+    sliders.forEach(({ id, label }) => {
+        const el = root.getElementById ? root.getElementById(id) : document.getElementById(id);
+        if (el && !el.getAttribute('aria-label')) el.setAttribute('aria-label', label);
+    });
+}
+
+function enhanceOddsCardsAccessibility() {
+    document.querySelectorAll('.odds-card').forEach(card => {
+        if (card.tagName !== 'BUTTON') return;
+        if (!card.hasAttribute('aria-pressed')) {
+            card.setAttribute('aria-pressed', card.classList.contains('selected') ? 'true' : 'false');
+        }
+    });
+}
+
+function initGlobalKeyboardShortcuts() {
+    if (document.body.dataset.keyboardShortcutsInit) return;
+    document.body.dataset.keyboardShortcutsInit = '1';
+
+    document.addEventListener('keydown', (e) => {
+        const active = document.activeElement;
+        const key = e.key;
+
+        if (key === ' ' && active?.classList?.contains('odds-card')) {
+            e.preventDefault();
+            active.click();
+            return;
+        }
+
+        if (key !== 'Enter') return;
+
+        if (active?.classList?.contains('odds-card') || active?.classList?.contains('close')) {
+            e.preventDefault();
+            active.click();
+            return;
+        }
+
+        if (!active || active.tagName !== 'INPUT') return;
+        const isMoney = active.classList.contains('money-input');
+        const isNumber = active.type === 'number';
+        if (!isMoney && !isNumber) return;
+
+        e.preventDefault();
+
+        if (active.id === 'deposit-amount') {
+            submitDeposit();
+            return;
+        }
+
+        if (active.id === 'betting-amount' || active.id === 'betting-sim-iters') {
+            const btn = document.getElementById('betting-sim-btn');
+            if (btn && !btn.disabled) {
+                btn.click();
+                return;
+            }
+            const massBtn = document.getElementById('betting-mass-sim-btn');
+            if (massBtn && !massBtn.disabled) massBtn.click();
+            return;
+        }
+
+        const gameArea = active.closest('#gameArea') || active.closest('.section');
+        if (gameArea) {
+            const playBtn = gameArea.querySelector('.btn-play:not([disabled])');
+            if (playBtn) playBtn.click();
+        }
+    });
+}
+
+function initAccessibility(root = document) {
+    labelEmojiOnlyButtons(root);
+    enhanceBettingSliders(root);
+    enhanceOddsCardsAccessibility();
+    initGlobalKeyboardShortcuts();
+}
+
 // ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
 function showToast(message) {
     let toast = document.getElementById('custom-toast');
@@ -40,8 +299,8 @@ function updateStats() {
     statsEl.classList.add('show');
     const winRate = gameStats.winCount > 0 ? ((gameStats.winCount / (gameStats.winCount + gameStats.loseCount + gameStats.drawCount)) * 100).toFixed(1) : '0.0';
     statsEl.innerHTML = `
-        <div class="stat-row"><span class="stat-label">Всего ставок ($):</span><span class="stat-value">$${gameStats.totalBets}</span></div>
-        <div class="stat-row"><span class="stat-label">Общий выигрыш ($):</span><span class="stat-value">$${gameStats.totalWins}</span></div>
+        <div class="stat-row"><span class="stat-label">Всего ставок ($):</span><span class="stat-value">${formatUsd(gameStats.totalBets)}</span></div>
+        <div class="stat-row"><span class="stat-label">Общий выигрыш ($):</span><span class="stat-value">${formatUsd(gameStats.totalWins)}</span></div>
         <div class="stat-row"><span class="stat-label">Побед:</span><span class="stat-value">${gameStats.winCount}</span></div>
         <div class="stat-row"><span class="stat-label">Поражений:</span><span class="stat-value">${gameStats.loseCount}</span></div>
         <div class="stat-row"><span class="stat-label">Процент побед:</span><span class="stat-value">${winRate}%</span></div>
@@ -66,6 +325,7 @@ function initTheme() {
         const btn = document.getElementById('theme-toggle');
         if (btn) btn.textContent = '🌙';
     }
+    updateThemeToggleAriaLabel();
 }
 function toggleTheme() {
     document.body.classList.toggle('light-theme');
@@ -73,6 +333,7 @@ function toggleTheme() {
     localStorage.setItem('theme', isLight ? 'light' : 'dark');
     const btn = document.getElementById('theme-toggle');
     if (btn) btn.textContent = isLight ? '🌙' : '☀️';
+    updateThemeToggleAriaLabel();
 }
 document.addEventListener('DOMContentLoaded', initTheme);
 
@@ -124,8 +385,8 @@ function renderBetHistory() {
     if (counters) {
         const netProfit = Math.floor(balance) - initialBalanceBaseline;
         const totalHtml = netProfit >= 0
-            ? `<span class="bh-counter bh-total-win">💰 Итог: +$${netProfit}</span>`
-            : `<span class="bh-counter bh-total-lose">🔻 Итог: -$${Math.abs(netProfit)}</span>`;
+            ? `<span class="bh-counter bh-total-win">💰 Итог: ${formatUsdSigned(netProfit)}</span>`
+            : `<span class="bh-counter bh-total-lose">🔻 Итог: ${formatUsdSigned(netProfit)}</span>`;
         counters.innerHTML = `
             <span class="bh-counter bh-win">✅ ${gameStats.winCount}</span>
             <span class="bh-counter bh-lose">❌ ${gameStats.loseCount}</span>
@@ -141,7 +402,7 @@ function renderBetHistory() {
 
     const GAME_NAMES = {
         roulette: '🎡 Рулетка', slots: '🎰 Слоты', wheel: '🎪 Колесо',
-        dice: '🎲 Кости', coin: '🟡 Монета', blackjack: '🃏 Блэкджек',
+        dice: '🎲 Кости', coin: '🟡 Монетка', blackjack: '🃏 Блэкджек',
         rps: '✂️ КНБ', betting: '⚽ Ставки'
     };
 
@@ -156,7 +417,7 @@ function renderBetHistory() {
         if (e.netProfit !== undefined) netProfit = e.netProfit;
         else netProfit = e.result === 'win' ? payout - wager : (e.result === 'lose' ? -wager : 0);
 
-        const netProfitStr = netProfit > 0 ? `+$${netProfit}` : (netProfit < 0 ? `-$${Math.abs(netProfit)}` : `$0`);
+        const netProfitStr = formatUsdSigned(netProfit);
         const profitColor = netProfit > 0 ? '#2ecc71' : (netProfit < 0 ? '#e74c3c' : '#f1c40f');
 
         return `<div class="bh-item ${cls}" style="flex-direction: column; align-items: stretch; gap: 5px; text-align: left; padding: 10px;">
@@ -165,12 +426,12 @@ function renderBetHistory() {
                 <span style="color: ${profitColor}; border: 1px solid ${profitColor}40; padding: 2px 6px; border-radius: 4px; background: ${profitColor}10;">Чистыми: ${netProfitStr}</span>
             </div>
             <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #bdc3c7;">
-                <span>Ставка: $${wager}</span>
-                <span>Выплата: $${payout}</span>
+                <span>Ставка: ${formatUsd(wager)}</span>
+                <span>Выплата: ${formatUsd(payout)}</span>
                 <span>Игр: ${iters}</span>
             </div>
             <div style="text-align: right; font-size: 0.8rem; color: #7f8c8d; margin-top: 4px;">
-                Баланс: $${e.balanceAfter}
+                Баланс: ${formatUsd(e.balanceAfter)}
             </div>
         </div>`;
     }).join('');
@@ -203,7 +464,7 @@ function updateLossCalculator() {
 
     if (!lossEl || !gridEl) return;
 
-    lossEl.textContent = '$' + totalLost;
+    lossEl.textContent = formatUsd(totalLost);
     if (totalLost > 0) lossEl.classList.add('loss-active');
     else lossEl.classList.remove('loss-active');
 
@@ -218,7 +479,7 @@ function updateLossCalculator() {
         return `<div class="calc-item" style="--item-opacity: ${itemOpacity}; --glass-blur: ${glassBlur}px;">
             <div class="calc-item-emoji" style="opacity: ${itemOpacity}; filter: blur(${glassBlur}px);">${item.emoji}</div>
             <div class="calc-item-name">${item.name}</div>
-            <div class="calc-item-price">$${item.price}</div>
+            <div class="calc-item-price">${formatUsd(item.price)}</div>
             <div class="calc-item-count">${count > 0 ? '×' + count : '—'}</div>
             <div class="calc-item-comment">${item.comment}</div>
         </div>`;
@@ -233,7 +494,7 @@ function updateLossCalculator() {
             const item = LOSS_ITEMS[i];
             const cnt = Math.floor(remaining / item.price);
             for (let j = 0; j < Math.min(cnt, 12); j++) {
-                icons.push(`<span class="calc-dyn-icon" title="${item.name} ($${item.price})">${item.emoji}</span>`);
+                icons.push(`<span class="calc-dyn-icon" title="${item.name} (${formatUsd(item.price)})">${item.emoji}</span>`);
             }
             remaining -= cnt * item.price;
         }
@@ -282,9 +543,11 @@ function clearCalculator() {
 function updateGlobalBalance() {
     localStorage.setItem('casinoBalance', balance);
     const navBal = document.getElementById('nav-global-balance');
-    if (navBal) navBal.textContent = '$' + Math.floor(balance);
+    if (navBal) navBal.textContent = formatUsd(balance);
     const localBal = document.getElementById('balance-display');
-    if (localBal) localBal.textContent = Math.floor(balance);
+    if (localBal) localBal.textContent = formatMoney(balance);
+    const depBal = document.getElementById('deposit-current-balance');
+    if (depBal) depBal.textContent = formatMoney(balance);
     updateLossCalculator();
 }
 
@@ -295,9 +558,9 @@ function resetCasinoBalance() {
 function openDepositModal() {
     const modal = document.getElementById('depositModal');
     if (modal) {
-        // Синхронизируем текущий баланс в окне депозита
-        const depBal = document.getElementById('deposit-current-balance');
-        if (depBal) depBal.textContent = Math.floor(balance);
+        updateGlobalBalance();
+        initAllMoneyInputs(modal);
+        initAccessibility(modal);
         modal.classList.add('active');
         document.body.style.overflow = 'hidden';
     }
@@ -317,7 +580,7 @@ function submitDeposit() {
 }
 
 function submitDepositQuick(val) {
-    const parsed = parseInt(val);
+    const parsed = parseMoneyInput(val);
     if (isNaN(parsed) || parsed < 1 || parsed > 1000000) {
         showToast('Пожалуйста, введите сумму от $1 до $1,000,000.');
         return;
@@ -337,6 +600,8 @@ function submitDepositQuick(val) {
         void navBal.offsetWidth;
         navBal.style.animation = 'winPulse 0.5s ease';
     }
+    const depInput = document.getElementById('deposit-amount');
+    if (depInput) setMoneyInputValue(depInput, parsed);
     closeDepositModal();
 }
 
@@ -350,9 +615,6 @@ function resetBalanceTo3000() {
     // showToast('Баланс сброшен до $0');
 
     // Обновляем отображение в модалке
-    const depBal = document.getElementById('deposit-current-balance');
-    if (depBal) depBal.textContent = Math.floor(balance);
-
     const navBal = document.getElementById('nav-global-balance');
     if (navBal) {
         navBal.style.animation = 'none';
@@ -362,41 +624,63 @@ function resetBalanceTo3000() {
     closeDepositModal();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    updateGlobalBalance();
-    renderBetHistory();
-    updateLossCalculator();
-    updateStats();
-
-    // Enter на поле депозита → подтверждает депозит
-    document.addEventListener('keydown', (e) => {
-        if (e.key !== 'Enter') return;
-        const active = document.activeElement;
-        if (!active || active.tagName !== 'INPUT' || active.type !== 'number') return;
-
-        e.preventDefault();
-
-        // Депозит
-        if (active.id === 'deposit-amount') {
-            submitDeposit();
-            return;
-        }
-
-        // Ставки на футбол
-        if (active.id === 'betting-amount' || active.id === 'betting-sim-iters') {
-            const btn = document.getElementById('betting-sim-btn');
-            if (btn && !btn.disabled) btn.click();
-            return;
-        }
-
-        // Ставки в играх — находим ближайшую кнопку «Играть / Вращать»
-        const gameArea = active.closest('#gameArea') || active.closest('.section');
-        if (gameArea) {
-            const playBtn = gameArea.querySelector('.btn-play');
-            if (playBtn) playBtn.click();
-        }
+function initScrollToTop() {
+    const btn = document.getElementById('scroll-to-top');
+    if (!btn) return;
+    const onScroll = throttle(() => {
+        btn.classList.toggle('visible', window.scrollY > 280);
+    }, 100);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    btn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     });
-});
+}
+
+const NAV_SECTION_IDS = [
+    'home', 'theory', 'advanced', 'simulator', 'history',
+    'football', 'probability', 'myths', 'calculator', 'betting'
+];
+const SECTION_STORAGE_KEY = 'activeSection';
+const HOME_TAB_STORAGE_KEY = 'activeHomeTab';
+
+function saveActiveSection(sectionId) {
+    if (!NAV_SECTION_IDS.includes(sectionId)) return;
+    localStorage.setItem(SECTION_STORAGE_KEY, sectionId);
+    const hash = '#' + sectionId;
+    if (location.hash !== hash) {
+        history.replaceState(null, '', location.pathname + location.search + hash);
+    }
+}
+
+function getSavedSectionId() {
+    const fromHash = location.hash.replace('#', '');
+    if (NAV_SECTION_IDS.includes(fromHash)) return fromHash;
+    const stored = localStorage.getItem(SECTION_STORAGE_KEY);
+    if (NAV_SECTION_IDS.includes(stored)) return stored;
+    return 'home';
+}
+
+function restoreActiveSectionOnLoad() {
+    const sectionId = getSavedSectionId();
+    document.querySelectorAll('.section').forEach(s => {
+        s.classList.remove('active', 'section-exiting', 'section-entering');
+        s.style.display = 'none';
+    });
+    switchSection(sectionId, null, { instant: true, skipScroll: true });
+    if (sectionId === 'home') {
+        const tab = localStorage.getItem(HOME_TAB_STORAGE_KEY);
+        if (tab === 'main' || tab === 'agreement') switchHomeTab(tab);
+    }
+    if (sectionId === 'betting') updateBettingOdds();
+}
+
+function initAppNavigation() {
+    window.addEventListener('hashchange', () => {
+        const id = location.hash.replace('#', '');
+        if (NAV_SECTION_IDS.includes(id)) switchSection(id, null, { skipScroll: false });
+    });
+}
 
 const gameDetailsData = {
     roulette: {
@@ -451,7 +735,7 @@ const gameDetailsData = {
                 <div class="formula-content"><strong>Определение:</strong> E(X) = Σ [P(исход) × Выплата(исход)] — средний результат на бесконечном числе ставок.</div>
                 <div class="formula-content"><strong>Для ставки $1 на красное:</strong> E(X) = (18/37 × $1) − (19/37 × $1) = $0.4865 − $0.5135 = <span style="color:#e74c3c;">−$0.027</span></div>
                 <div class="formula-content"><strong>Что это значит:</strong> На каждый поставленный $1 игрок в среднем теряет 2.7 цента. За 1000 ставок по $1 средний проигрыш = $27. Казино не обманывает — оно зарабатывает на математике.</div>
-                <div class="formula-content"><strong>Для ставки на число:</strong> E(X) = (1/37 × $35) − (36/37 × $1) = $0.946 − $0.973 = <span style="color:#e74c3c;">−$0.027</span>. Тот же самый House Edge 2.7% — независимо от типа ставки!</div>
+                <div class="formula-content"><strong>Для ставки на число:</strong> E(X) = (1/37 × $35) − (36/37 × $1) = $0.946 − $0.973 = <span style="color:#e74c3c;">−$0.027</span>. Тот же самый преимущество казино 2.7% — независимо от типа ставки!</div>
             </div>
             <div class="beautiful-formula" style="margin-top:1rem;">
                 <div class="formula-title">📐 Формула 3: Закон больших чисел (ЗБЧ)</div>
@@ -479,13 +763,13 @@ const gameDetailsData = {
                 <div class="formula-title">Формула комбинаторики</div>
                 <div class="formula-content">Всего символов: 7. Барабанов: 3. Всего комбинаций = 7<sup>3</sup> = 343</div>
                 <div class="formula-content">Выигрышных комбинаций (X-X-X): 7</div>
-                <div class="formula-content">P(Win) = 7 / 343 = 1/49 &approx; <span style="color:#2ecc71;">2.04%</span></div>
+                <div class="formula-content">P(выигрыш) = 7 / 343 = 1/49 &approx; <span style="color:#2ecc71;">2.04%</span></div>
             </div>
             <br>
             <div class="beautiful-formula">
-                <div class="formula-title">Преимущество казино (House Edge)</div>
-                <div class="formula-content">House Edge = 1 - (P(Win) &times; Payout)</div>
-                <div class="formula-content">House Edge = 1 - (0.0204 &times; 10) &approx; <span style="color:#e74c3c;">79.6%</span></div>
+                <div class="formula-title">Преимущество казино</div>
+                <div class="formula-content">ПК = 1 − (P(выигрыш) × коэффициент выплаты)</div>
+                <div class="formula-content">ПК = 1 − (0,0204 × 10) ≈ <span style="color:#e74c3c;">79,6%</span></div>
             </div>
             <p style="margin-top: 1rem; font-size: 0.95rem; color:#bdc3c7;">Слоты используют математику геометрического распределения ожиданий: чтобы выиграть один раз с вероятностью ~2%, вам в среднем потребуется 49 вращений (много попыток), однако выплата 10:1 не покрывает затраты на 49 попыток.</p>
         `,
@@ -514,8 +798,8 @@ const gameDetailsData = {
                 <div class="formula-content"><strong>P(k попыток до победы):</strong> P(X = k) = (1 − p)^(k−1) × p. P(победить за 1 вращение) = 2.04%. P(не выиграть за 50 вращений) = (48/49)^50 ≈ 36%.</div>
             </div>
             <div class="beautiful-formula" style="margin-top:1rem;">
-                <div class="formula-title">📐 Формула 3: House Edge (Преимущество казино)</div>
-                <div class="formula-content"><strong>Формула:</strong> HE = 1 − (P(Win) × Payout) = 1 − (1/49 × 10) = 1 − 0.204 = <span style="color:#e74c3c;">79.6%</span></div>
+                <div class="formula-title">📐 Формула 3: Преимущество казино</div>
+                <div class="formula-content"><strong>Формула:</strong> ПК = 1 − (P(выигрыш) × коэффициент выплаты) = 1 − (1/49 × 10) = 1 − 0.204 = <span style="color:#e74c3c;">79.6%</span></div>
                 <div class="formula-content"><strong>Что это значит:</strong> Из каждых $100 поставленных в слоты, казино забирает в среднем $79.60. Это САМОЕ высокое преимущество среди всех игр на сайте.</div>
                 <div class="formula-content"><strong>Почему слоты так популярны:</strong> Несмотря на ужасную математику, слоты привлекают яркими эффектами и надеждой на джекпот (×10). Но математика беспощадна — на дистанции вы теряете ~80% вложений.</div>
                 <div class="formula-content"><strong>Когда работает:</strong> Каждое вращение — независимое событие. Предыдущие результаты НЕ влияют на следующие. Если вы проиграли 48 раз подряд, шанс следующего джекпота всё ещё 2.04%, а не больше.</div>
@@ -531,17 +815,17 @@ const gameDetailsData = {
                 <li><strong>Выплата:</strong> 4 к 1.</li>
             </ul>
         `,
-        description: "Простая и зрелищная игра, часто используемая в телешоу и на ярмарках. В казино известна как 'Big Six Wheel'.",
+        description: "Простая и зрелищная игра, часто используемая в телешоу и на ярмарках. В казино известна как '«Колесо фортуны» (Big Six)'.",
         theory: `
             <p><strong>Биномиальное распределение:</strong></p>
             <p style="margin-bottom: 1rem; font-size: 0.9rem;">В нашей упрощенной версии (4 сектора) это эквивалентно бросанию кубика с 4 гранями.</p>
             <div class="beautiful-formula">
                 <div class="formula-title">Вероятность и матожидание</div>
-                <div class="formula-content">P(Win) = 1/4 = 25%</div>
-                <div class="formula-content">Выплата (Payout) = 3 к 1 (т.е. +3 за победу, -1 за проигрыш)</div>
+                <div class="formula-content">P(выигрыш) = 1/4 = 25%</div>
+                <div class="formula-content">Коэффициент выплаты = 3 к 1 (т.е. +3 за победу, -1 за проигрыш)</div>
                 <div class="formula-content">E(X) = (0.25 &times; 3) - (0.75 &times; 1) = 0</div>
             </div>
-            <p style="margin-top: 1rem; font-size: 0.95rem; color:#bdc3c7;">В данной реализации это 'честная' игра с нулевым преимуществом казино. В реальном казино сектора распределены неравномерно (например, 24 шанса на $1 и только 1 шанс на Joker $50), создавая преимущество до 24%!</p>
+            <p style="margin-top: 1rem; font-size: 0.95rem; color:#bdc3c7;">В данной реализации это 'честная' игра с нулевым преимуществом казино. В реальном казино сектора распределены неравномерно (например, 24 шанса на $1 и только 1 шанс на Джокер $50), создавая преимущество до 24%!</p>
         `,
         history: "Происхождение уходит корнями в древние колесницы и колеса, использовавшиеся для жребия. Современный вид игра приобрела в американских казино в конце 19 века.",
         howItWorks: `
@@ -556,13 +840,13 @@ const gameDetailsData = {
                 <div class="formula-title">📐 Формула 1: Классическая вероятность Лапласа</div>
                 <div class="formula-content"><strong>Определение:</strong> P(события) = число благоприятных исходов / общее число равновероятных исходов.</div>
                 <div class="formula-content"><strong>В игре:</strong> P(угадать сектор) = 1 благоприятный / 4 возможных = 1/4 = 25%. Каждый сектор занимает ровно 1/4 площади колеса.</div>
-                <div class="formula-content"><strong>Почему это честно:</strong> Все 4 сектора равны по размеру и вероятности. В реальном казино Big Six Wheel сектора НЕРАВНЫЕ — например, 24 позиции для $1 и 1 для Joker $50, создавая House Edge до 24%.</div>
+                <div class="formula-content"><strong>Почему это честно:</strong> Все 4 сектора равны по размеру и вероятности. В реальном казино «Колесо фортуны» (Big Six) сектора НЕРАВНЫЕ — например, 24 позиции для $1 и 1 для Джокер $50, создавая преимущество казино до 24%.</div>
             </div>
             <div class="beautiful-formula" style="margin-top:1rem;">
                 <div class="formula-title">📐 Формула 2: Математическое ожидание</div>
-                <div class="formula-content"><strong>Формула:</strong> E(X) = P(win) × Чистая_прибыль − P(lose) × Ставка</div>
+                <div class="formula-content"><strong>Формула:</strong> E(X) = P(выигрыш) × Чистая_прибыль − P(проигрыш) × Ставка</div>
                 <div class="formula-content"><strong>Расчёт:</strong> E(X) = (1/4 × $3) − (3/4 × $1) = $0.75 − $0.75 = <span style="color:#2ecc71;">$0 (честная игра)</span></div>
-                <div class="formula-content"><strong>Что это значит:</strong> На длинной дистанции ваш баланс не должен ни расти, ни падать. Это «справедливая» игра с нулевым преимуществом казино (House Edge = 0%).</div>
+                <div class="formula-content"><strong>Что это значит:</strong> На длинной дистанции ваш баланс не должен ни расти, ни падать. Это «справедливая» игра с нулевым преимуществом казино (ПК = 0%).</div>
             </div>
             <div class="beautiful-formula" style="margin-top:1rem;">
                 <div class="formula-title">📐 Формула 3: Биномиальное распределение</div>
@@ -593,7 +877,7 @@ const gameDetailsData = {
                 <div class="formula-content">P(Четное) = 18/36 = <span style="color:#f39c12;">50%</span></div>
                 <div class="formula-content">P(Нечетное) = 18/36 = <span style="color:#f39c12;">50%</span></div>
             </div>
-            <p style="margin-top: 1rem; font-size: 0.95rem; color:#bdc3c7;">Однако, в реальном Крэпсе ставки сложнее (Pass Line, Don't Pass), и казино внедряет свои правила (например, при выпадении 12 ставка Don't Pass - возврат вместо выигрыша), что рождает <span style="color:#e74c3c;">House Edge 1.36%</span>.</p>
+            <p style="margin-top: 1rem; font-size: 0.95rem; color:#bdc3c7;">Однако, в реальном Крэпсе ставки сложнее («Пас» и «Не пас»), и казино внедряет свои правила (например, при выпадении 12 ставка «Не пас» — возврат вместо выигрыша), что даёт <span style="color:#e74c3c;">преимущество казино 1,36%</span>.</p>
         `,
         history: "Игра развилась из древней английской игры Hazard. В Новый Орлеан ее привез Бернар де Мариньи в начале 19 века, где она упростилась и получила название 'Crapaud' (жаба), позже превратившееся в Craps.",
         howItWorks: `
@@ -614,9 +898,9 @@ const gameDetailsData = {
             </div>
             <div class="beautiful-formula" style="margin-top:1rem;">
                 <div class="formula-title">📐 Формула 2: Матожидание для каждого типа ставки</div>
-                <div class="formula-content"><strong>Ставка «Меньше 7»:</strong> P = 15/36, Payout = ×2.4. E = (15/36 × $1.40) − (21/36 × $1) = $0.583 − $0.583 = <span style="color:#2ecc71;">$0</span> — справедливая ставка.</div>
-                <div class="formula-content"><strong>Ставка «Больше 7»:</strong> P = 15/36, Payout = ×2.4. Идентичная математика → E = <span style="color:#2ecc71;">$0</span> — справедливая ставка.</div>
-                <div class="formula-content"><strong>Ставка «Ровно 7»:</strong> P = 6/36 = 1/6, Payout = ×5. E = (1/6 × $4) − (5/6 × $1) = $0.667 − $0.833 = <span style="color:#e74c3c;">−$0.167</span> — НЕвыгодная ставка! House Edge ≈ 16.7%.</div>
+                <div class="formula-content"><strong>Ставка «Меньше 7»:</strong> P = 15/36, коэффициент выплаты = ×2.4. E = (15/36 × $1.40) − (21/36 × $1) = $0.583 − $0.583 = <span style="color:#2ecc71;">$0</span> — справедливая ставка.</div>
+                <div class="formula-content"><strong>Ставка «Больше 7»:</strong> P = 15/36, коэффициент выплаты = ×2.4. Идентичная математика → E = <span style="color:#2ecc71;">$0</span> — справедливая ставка.</div>
+                <div class="formula-content"><strong>Ставка «Ровно 7»:</strong> P = 6/36 = 1/6, коэффициент выплаты = ×5. E = (1/6 × $4) − (5/6 × $1) = $0.667 − $0.833 = <span style="color:#e74c3c;">−$0.167</span> — НЕвыгодная ставка! преимущество казино ≈ 16.7%.</div>
                 <div class="formula-content"><strong>Вывод:</strong> Ставки «Больше/Меньше» — честные (EV=0). Ставка «Ровно 7» — ловушка с преимуществом казино 16.7%!</div>
             </div>
             <div class="beautiful-formula" style="margin-top:1rem;">
@@ -628,7 +912,7 @@ const gameDetailsData = {
         `
     },
     coin: {
-        title: "Орел и решка",
+        title: "Монетка",
         rules: `
             <ul style="color: #ecf0f1; font-size: 1.05rem;">
                 <li><strong>Цель:</strong> Угадать сторону монеты.</li>
@@ -639,39 +923,39 @@ const gameDetailsData = {
         description: "Самая древняя и простая азартная игра. Используется нами для демонстрации базовых принципов вероятности.",
         theory: `
             <p><strong>Независимые события (Схема Бернулли):</strong></p>
-            <p style="margin-bottom: 1rem; font-size: 0.9rem;">Каждый бросок абсолютно не зависит от предыдущего. Монета не имеет памяти.</p>
+            <p style="margin-bottom: 1rem; font-size: 0.9rem;">Каждый бросок абсолютно не зависит от предыдущего. Монетка не имеет памяти.</p>
             <div class="beautiful-formula">
                 <div class="formula-title">Формула вероятности серий (Теорема умножения)</div>
                 <div class="formula-content">P(Успех) = 0.5</div>
                 <div class="formula-content">P(n успехов подряд) = (0.5)<sup>n</sup></div>
                 <div class="formula-content">P(О-О-О-О-О) = 0.5<sup>5</sup> = 1/32 &approx; <span style="color:#f39c12;">3.1%</span></div>
             </div>
-            <p style="margin-top: 1rem; font-size: 0.95rem; color:#bdc3c7;">Ошибочное мнение, что после серии из 5 Орлов шанс выпадения Решки выше, называется <strong>«Ошибкой игрока» (Gambler's Fallacy)</strong>.</p>
+            <p style="margin-top: 1rem; font-size: 0.95rem; color:#bdc3c7;">Ошибочное мнение, что после серии из 5 жёлтых сторон шанс выпадения оранжевой выше, называется <strong>«Ошибкой игрока» (Gambler's Fallacy)</strong>.</p>
         `,
         history: "Игра известна с времен Древнего Рима ('Navia aut caput' - Корабль или Голова). Встречается во всех культурах мира.",
         howItWorks: `
             <div class="beautiful-formula">
                 <div class="formula-title">🔧 Алгоритм игры (шаг за шагом)</div>
-                <div class="formula-content">1. Вы выбираете Орел (🟡) или Решку (🟠) и делаете ставку.</div>
-                <div class="formula-content">2. Генератор вызывает Math.random(). Если число < 0.5 — Орёл, ≥ 0.5 — Решка. Ровно 50/50.</div>
+                <div class="formula-content">1. Вы выбираете Желтый (🟡) или Оранжевый (🟠) и делаете ставку.</div>
+                <div class="formula-content">2. Генератор вызывает Math.random(). Если число < 0.5 — желтая сторона, ≥ 0.5 — оранжевая. Ровно 50/50.</div>
                 <div class="formula-content">3. Если угадали — баланс увеличивается на ставку ×2 (возврат ставки + чистая прибыль). Если нет — ставка потеряна.</div>
             </div>
             <div class="beautiful-formula" style="margin-top:1rem;">
                 <div class="formula-title">📐 Формула 1: Схема Бернулли</div>
                 <div class="formula-content"><strong>Что это:</strong> Последовательность n независимых экспериментов, каждый с двумя исходами (успех p = 0.5, неудача q = 0.5). Названа в честь Якоба Бернулли (1713).</div>
-                <div class="formula-content"><strong>В игре:</strong> Каждый бросок монеты — это один эксперимент Бернулли. Результат не зависит от предыдущих бросков. Монета не имеет «памяти».</div>
-                <div class="formula-content"><strong>Матожидание:</strong> E(X) = P(win) × $1 − P(lose) × $1 = 0.5 × $1 − 0.5 × $1 = <span style="color:#2ecc71;">$0</span>. Абсолютно честная игра. House Edge = 0%.</div>
+                <div class="formula-content"><strong>В игре:</strong> Каждый бросок монетки — это один эксперимент Бернулли. Результат не зависит от предыдущих бросков. Монетка не имеет «памяти».</div>
+                <div class="formula-content"><strong>Матожидание:</strong> E(X) = P(выигрыш) × $1 − P(проигрыш) × $1 = 0.5 × $1 − 0.5 × $1 = <span style="color:#2ecc71;">$0</span>. Абсолютно честная игра. ПК = 0%.</div>
             </div>
             <div class="beautiful-formula" style="margin-top:1rem;">
                 <div class="formula-title">📐 Формула 2: Теорема умножения (Серии)</div>
                 <div class="formula-content"><strong>Формула:</strong> P(n одинаковых подряд) = p^n = (1/2)^n. Это следствие независимости — вероятности перемножаются.</div>
-                <div class="formula-content"><strong>Примеры:</strong> P(3 орла подряд) = (1/2)³ = 1/8 = 12.5%. P(5 подряд) = 1/32 = 3.1%. P(10 подряд) = 1/1024 ≈ 0.098%. P(20 подряд) = 1/1 048 576 ≈ 0.0001%.</div>
-                <div class="formula-content"><strong>Когда работает:</strong> Формула работает ПЕРЕД началом серии. Если вы УЖЕ бросили 9 орлов, шанс 10-го орла = 50%, а не 0.098%. Это ключевое различие!</div>
+                <div class="formula-content"><strong>Примеры:</strong> P(3 желтых подряд) = (1/2)³ = 1/8 = 12.5%. P(5 подряд) = 1/32 = 3.1%. P(10 подряд) = 1/1024 ≈ 0.098%. P(20 подряд) = 1/1 048 576 ≈ 0.0001%.</div>
+                <div class="formula-content"><strong>Когда работает:</strong> Формула работает ПЕРЕД началом серии. Если вы УЖЕ выпало 9 желтых, шанс 10-го желтого = 50%, а не 0.098%. Это ключевое различие!</div>
             </div>
             <div class="beautiful-formula" style="margin-top:1rem;">
                 <div class="formula-title">📐 Формула 3: Ошибка игрока (Gambler's Fallacy)</div>
-                <div class="formula-content"><strong>Заблуждение:</strong> «Выпало 10 орлов подряд — значит СЕЙЧАС точно будет решка!» Это ЛОЖЬ. P(решка после 10 орлов) = всё ещё <span style="color:#f1c40f;">50%</span>.</div>
-                <div class="formula-content"><strong>Почему люди ошибаются:</strong> Мозг путает P(серия из 11 орлов С НУЛЯ) = 0.049% и P(ещё 1 орёл ПОСЛЕ 10) = 50%. Первое — маловероятно, второе — обычный бросок.</div>
+                <div class="formula-content"><strong>Заблуждение:</strong> «Выпало 10 желтых подряд — значит СЕЙЧАС точно будет оранжевый!» Это ЛОЖЬ. P(оранжевый после 10 желтых) = всё ещё <span style="color:#f1c40f;">50%</span>.</div>
+                <div class="formula-content"><strong>Почему люди ошибаются:</strong> Мозг путает P(серия из 11 желтых С НУЛЯ) = 0.049% и P(ещё 1 желтый ПОСЛЕ 10) = 50%. Первое — маловероятно, второе — обычный бросок.</div>
                 <div class="formula-content"><strong>В казино:</strong> Именно эта ошибка заставляет игроков увеличивать ставки после серии проигрышей (стратегия Мартингейла), что приводит к катастрофическим потерям.</div>
                 <div class="formula-content"><strong>Когда работает:</strong> Всегда. При КАЖДОМ отдельном броске. Это фундамент всей теории вероятностей — опыт Бернулли.</div>
             </div>
@@ -697,9 +981,9 @@ const gameDetailsData = {
                 <div class="formula-content">P(Десятка из оставшихся) = 16/51</div>
                 <div class="formula-content">P(Блэкджек) = 2 &times; (4/52 &times; 16/51) &approx; <span style="color:#2ecc71;">4.8%</span></div>
             </div>
-            <p style="margin-top: 1rem; font-size: 0.95rem; color:#bdc3c7;">Математически доказано, что правильная («Базовая») стратегия минимизирует математическое ожидание потерь до сверхмалых 0.5% (House Edge). А подсчет карт по системе Hi-Lo позволяет перевесить матожидание в сторону игрока на +1%.</p>
+            <p style="margin-top: 1rem; font-size: 0.95rem; color:#bdc3c7;">Математически доказано, что правильная («Базовая») стратегия минимизирует математическое ожидание потерь до сверхмалых 0.5% (преимущество казино). А подсчет карт по системе Хай-Ло позволяет перевесить матожидание в сторону игрока на +1%.</p>
         `,
-        history: "Происходит от французской игры 'Vingt-et-Un' (21), популярной в 17 веке. Название 'Blackjack' появилось в США, когда казино предлагали бонусную выплату за Туза пик и Валета пик (Black Jack).",
+        history: "Происходит от французской игры «21» (Vingt-et-Un), популярной в XVII веке. Название «блэкджек» появилось в США, когда казино предлагали бонусную выплату за туз пик и валета пик.",
         howItWorks: `
             <div class="beautiful-formula">
                 <div class="formula-title">🔧 Алгоритм игры (шаг за шагом)</div>
@@ -724,10 +1008,10 @@ const gameDetailsData = {
                 <div class="formula-content"><strong>Когда работает:</strong> После КАЖДОЙ вытянутой карты. Это непрерывный процесс обновления знаний — фундамент подсчёта карт.</div>
             </div>
             <div class="beautiful-formula" style="margin-top:1rem;">
-                <div class="formula-title">📐 Формула 3: Базовая стратегия + House Edge</div>
+                <div class="formula-title">📐 Формула 3: Базовая стратегия и преимущество казино</div>
                 <div class="formula-content"><strong>Базовая стратегия:</strong> Таблица оптимальных решений (Hit/Stand/Double/Split) для каждой комбинации «ваши карты + открытая карта дилера». Рассчитана компьютером через миллионы симуляций.</div>
-                <div class="formula-content"><strong>House Edge:</strong> Без стратегии = 2–5%. С базовой стратегией = <span style="color:#e74c3c;">0.5%</span> — самое НИЗКОЕ преимущество казино из ВСЕХ игр! На каждый $1 вы теряете лишь 0.5 цента.</div>
-                <div class="formula-content"><strong>Подсчёт карт (Hi-Lo):</strong> Низкие карты (2-6) = +1, средние (7-9) = 0, высокие (10-A) = −1. Высокий «running count» = много десяток в колоде = выгодно для игрока (больше блэкджеков).</div>
+                <div class="formula-content"><strong>Преимущество казино:</strong> без стратегии = 2–5%. С базовой стратегией = <span style="color:#e74c3c;">0,5%</span> — самое низкое преимущество казино из всех игр! На каждый $1 вы теряете лишь 0,5 цента.</div>
+                <div class="formula-content"><strong>Подсчёт карт (Хай-Ло):</strong> Низкие карты (2-6) = +1, средние (7-9) = 0, высокие (10-A) = −1. Высокий «текущий счёт» = много десяток в колоде = выгодно для игрока (больше блэкджеков).</div>
                 <div class="formula-content"><strong>Когда работает:</strong> Условная вероятность применяется после КАЖДОЙ карты. Блэкджек — единственная игра казино, где преимущество можно математически перевернуть в пользу игрока (+1% с подсчётом карт).</div>
             </div>
         `
@@ -770,8 +1054,8 @@ const gameDetailsData = {
             <div class="beautiful-formula" style="margin-top:1rem;">
                 <div class="formula-title">📐 Формула 1: Классическая вероятность (3 равных исхода)</div>
                 <div class="formula-content"><strong>Что это:</strong> При честной случайной генерации каждый из 3 вариантов бота равновероятен. P(Камень) = P(Ножницы) = P(Бумага) = 1/3 ≈ 33.33%.</div>
-                <div class="formula-content"><strong>Исходы:</strong> 9 возможных комбинаций (3 ваших × 3 бота). Из них 3 победных + 3 ничейных + 3 проигрышных. Поэтому P(win) = P(draw) = P(lose) = 3/9 = 1/3.</div>
-                <div class="formula-content"><strong>Матожидание:</strong> E(X) = (1/3 × $1) + (1/3 × $0) − (1/3 × $1) = $0.333 + $0 − $0.333 = <span style="color:#2ecc71;">$0 (честная игра)</span>. House Edge = 0%.</div>
+                <div class="formula-content"><strong>Исходы:</strong> 9 возможных комбинаций (3 ваших × 3 бота). Из них 3 победных + 3 ничейных + 3 проигрышных. Поэтому P(выигрыш) = P(draw) = P(проигрыш) = 3/9 = 1/3.</div>
+                <div class="formula-content"><strong>Матожидание:</strong> E(X) = (1/3 × $1) + (1/3 × $0) − (1/3 × $1) = $0.333 + $0 − $0.333 = <span style="color:#2ecc71;">$0 (честная игра)</span>. ПК = 0%.</div>
             </div>
             <div class="beautiful-formula" style="margin-top:1rem;">
                 <div class="formula-title">📐 Формула 2: Равновесие Нэша (Теория Игр)</div>
@@ -791,100 +1075,91 @@ const gameDetailsData = {
 };
 
 // ===== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК =====
-function switchSection(sectionId, clickedElement) {
+function switchSection(sectionId, clickedElement, options = {}) {
+    const { instant = false, skipScroll = false } = options;
     const sections = document.querySelectorAll('.section');
     const buttons = document.querySelectorAll('.nav-btn');
     const targetSection = document.getElementById(sectionId);
 
-    // Проверяем, что целевая секция существует
     if (!targetSection) {
         console.error('Секция не найдена:', sectionId);
         return;
     }
 
-    // Если уже активна эта секция, ничего не делаем
-    if (targetSection.classList.contains('active')) {
+    if (targetSection.classList.contains('active') && !instant) {
+        saveActiveSection(sectionId);
         return;
     }
 
-    // Обновляем кнопки навигации
     buttons.forEach(btn => btn.classList.remove('active'));
     if (clickedElement) {
         clickedElement.classList.add('active');
     } else {
-        // Находим кнопку по атрибуту onclick
         buttons.forEach(btn => {
-            if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(sectionId)) {
+            const onclick = btn.getAttribute('onclick') || '';
+            if (onclick.includes(`'${sectionId}'`) || onclick.includes(`"${sectionId}"`)) {
                 btn.classList.add('active');
             }
         });
     }
 
-    // Получаем текущую активную секцию
     const activeSection = document.querySelector('.section.active');
 
-    // Плавное переключение с анимацией
+    const showTarget = () => {
+        sections.forEach(s => {
+            s.classList.remove('active', 'section-exiting', 'section-entering', 'is-transitioning');
+            if (s !== targetSection) s.style.display = 'none';
+        });
+        targetSection.style.display = 'block';
+        targetSection.classList.add('active');
+        saveActiveSection(sectionId);
+        if (sectionId === 'betting') requestAnimationFrame(() => updateBettingOdds());
+    };
+
+    if (instant) {
+        showTarget();
+        if (!skipScroll) window.scrollTo({ top: 0, behavior: 'auto' });
+        return;
+    }
+
     if (activeSection && activeSection !== targetSection) {
-        // Добавляем класс для анимации выхода
-        activeSection.classList.add('section-exiting');
-
-        // После завершения анимации выхода скрываем старую секцию и показываем новую
+        activeSection.classList.add('section-exiting', 'is-transitioning');
+        targetSection.classList.add('is-transitioning');
         setTimeout(() => {
-            activeSection.classList.remove('active', 'section-exiting');
-            activeSection.style.display = 'none';
-
-            // Показываем новую секцию
-            targetSection.style.display = 'block';
-            targetSection.classList.add('active');
-
-            // Запускаем анимацию появления
+            showTarget();
             requestAnimationFrame(() => {
                 targetSection.classList.add('section-entering');
                 setTimeout(() => {
-                    targetSection.classList.remove('section-entering');
-                }, 500);
+                    targetSection.classList.remove('section-entering', 'is-transitioning');
+                    if (activeSection) activeSection.classList.remove('is-transitioning');
+                }, 400);
             });
-        }, 300);
+        }, 280);
     } else {
-        // Если нет активной секции, просто показываем целевую
-        sections.forEach(s => {
-            s.classList.remove('active', 'section-exiting', 'section-entering');
-            s.style.display = 'none';
-        });
-
-        targetSection.style.display = 'block';
-        targetSection.classList.add('active');
-
+        showTarget();
         requestAnimationFrame(() => {
             targetSection.classList.add('section-entering');
-            setTimeout(() => {
-                targetSection.classList.remove('section-entering');
-            }, 500);
+            setTimeout(() => targetSection.classList.remove('section-entering', 'is-transitioning'), 400);
         });
     }
 
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (!skipScroll) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function switchHomeTab(tabId) {
-    // Скрываем все подвкладки
     document.querySelectorAll('.home-subtab').forEach(el => el.classList.remove('active'));
-    // Убираем активность с кнопок
     document.querySelectorAll('.home-tab-btn').forEach(btn => btn.classList.remove('active'));
 
-    // Показываем нужную подвкладку
     const targetTab = document.getElementById(`home-sub-${tabId}`);
-    if (targetTab) {
-        targetTab.classList.add('active');
-    }
+    if (targetTab) targetTab.classList.add('active');
 
-    // Активируем кнопку
-    const buttons = document.querySelectorAll('.home-tab-btn');
-    buttons.forEach(btn => {
-        if (btn.getAttribute('onclick').includes(tabId)) {
-            btn.classList.add('active');
-        }
+    document.querySelectorAll('.home-tab-btn').forEach(btn => {
+        if (btn.getAttribute('onclick')?.includes(tabId)) btn.classList.add('active');
     });
+
+    if (tabId === 'main' || tabId === 'agreement') {
+        localStorage.setItem(HOME_TAB_STORAGE_KEY, tabId);
+    }
 }
 
 function toggleMenu() {
@@ -956,6 +1231,9 @@ function openGame(game) {
             break;
     }
 
+    initAllMoneyInputs(gameArea);
+    initAccessibility(gameArea);
+
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
 
@@ -1021,7 +1299,7 @@ function resetBalance() {
     gameStats.loseCount = 0;
 
     const balanceDisplay = document.getElementById('balance-display');
-    if (balanceDisplay) balanceDisplay.textContent = balance;
+    if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
 
     updateGlobalBalance();
 
@@ -1142,7 +1420,7 @@ function createRouletteGame() {
         <div class="input-group" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
             <div style="flex: 1; min-width: 150px;">
                 <label>Размер ставки ($)</label>
-                <input type="number" id="bet-amount" min="1" max="100000" value="50">
+                <input type="text" id="bet-amount" class="money-input betting-amount-input" inputmode="numeric" min="1" max="100000" value="50">
             </div>
             <div style="flex: 1; min-width: 150px;">
                 <label>Итераций симуляции (1-200)</label>
@@ -1153,15 +1431,18 @@ function createRouletteGame() {
             </div>
         </div>
 
-        <div class="game-buttons" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 0.5rem;">
-            <button class="btn-play" style="background: #e74c3c;" onclick="playRoulette('red')">🔴 Красное</button>
-            <button class="btn-play" style="background: #27ae60;" onclick="playRoulette('zero')">🟢 Зеро (0)</button>
-            <button class="btn-play" style="background: #1a252f;" onclick="playRoulette('black')">⚫ Черное</button>
-        </div>
-        <div class="game-buttons" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-            <button class="btn-play" style="background: linear-gradient(135deg, #2980b9, #2c3e50);" onclick="playRoulette('even')">🔢 Четное</button>
-            <button class="btn-play" style="background: linear-gradient(135deg, #8e44ad, #2c3e50);" onclick="playRoulette('odd')">🔢 Нечетное</button>
-        </div>
+        <fieldset class="a11y-fieldset game-bet-fieldset">
+            <legend>Выберите тип ставки в рулетке</legend>
+            <div class="game-buttons" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 0.5rem;">
+                <button type="button" class="btn-play" style="background: #e74c3c;" onclick="playRoulette('red')" aria-label="Ставка на красное">🔴 Красное</button>
+                <button type="button" class="btn-play" style="background: #27ae60;" onclick="playRoulette('zero')" aria-label="Ставка на зеро">🟢 Зеро (0)</button>
+                <button type="button" class="btn-play" style="background: #1a252f;" onclick="playRoulette('black')" aria-label="Ставка на чёрное">⚫ Черное</button>
+            </div>
+            <div class="game-buttons" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0;">
+                <button type="button" class="btn-play" style="background: linear-gradient(135deg, #2980b9, #2c3e50);" onclick="playRoulette('even')" aria-label="Ставка на чётное">🔢 Четное</button>
+                <button type="button" class="btn-play" style="background: linear-gradient(135deg, #8e44ad, #2c3e50);" onclick="playRoulette('odd')" aria-label="Ставка на нечётное">🔢 Нечетное</button>
+            </div>
+        </fieldset>
 
         <div style="margin-top: 1rem;">
             <button class="btn-reset" onclick="resetCasinoBalance()" style="width: 100%;">💳 Установить баланс (Депозит)</button>
@@ -1173,7 +1454,7 @@ function createRouletteGame() {
 
         <div id="result"></div>
         <div style="text-align: center; color: #f39c12; font-weight: bold; font-size: 1.2rem; margin: 1rem 0; padding: 1rem; background: rgba(243, 156, 18, 0.1); border-radius: 8px;">
-            💰 Баланс: $<span id="balance-display">${balance}</span>
+            💰 Баланс: $<span id="balance-display">${formatMoney(balance)}</span>
         </div>
 
         <div id="roulette-stats" class="statistics"></div>
@@ -1184,7 +1465,7 @@ function playRoulette(color) {
     const betInput = document.getElementById('bet-amount');
     if (!betInput) return;
 
-    const bet = parseInt(betInput.value);
+    const bet = getMoneyInputValue(betInput);
     if (balance <= 0) {
         showAlert('У вас нулевой баланс! Пожалуйста, пополните депозит.');
         openDepositModal();
@@ -1199,7 +1480,7 @@ function playRoulette(color) {
     gameStats.totalBets += bet;
     updateGlobalBalance();
     const balanceDisplay = document.getElementById('balance-display');
-    if (balanceDisplay) balanceDisplay.textContent = balance;
+    if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
 
     const resultDiv = document.getElementById('result');
     if (resultDiv) {
@@ -1290,19 +1571,19 @@ function finishRoulette(color, bet) {
         gameStats.totalWins += win;
         gameStats.winCount++;
         resultDiv.className = 'result-message win';
-        resultDiv.textContent = `✅ ВЫИГРЫШ! (+$${win - bet}) Выпало: ${number}${actualText} | Ставка: ${chosenText}`;
+        resultDiv.textContent = `✅ ВЫИГРЫШ! (${formatUsdSigned(win - bet)}) Выпало: ${number}${actualText} | Ставка: ${chosenText}`;
         playWinSound();
         recordBet('roulette', bet, 'win', win);
     } else {
         gameStats.loseCount++;
         resultDiv.className = 'result-message lose';
-        resultDiv.textContent = `❌ ПРОИГРЫШ! (-$${bet}) Выпало: ${number}${actualText} | Ставка: ${chosenText}`;
+        resultDiv.textContent = `❌ ПРОИГРЫШ! (${formatUsdSigned(-bet)}) Выпало: ${number}${actualText} | Ставка: ${chosenText}`;
         playLoseSound();
         recordBet('roulette', bet, 'lose', 0);
     }
 
     const balanceDisplay = document.getElementById('balance-display');
-    if (balanceDisplay) balanceDisplay.textContent = balance;
+    if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
     updateGlobalBalance();
     updateStats();
 }
@@ -1315,13 +1596,13 @@ function createSlotsGame() {
         <div class="beautiful-formula">
             <div class="formula-title">Комбинаторика</div>
             <div class="formula-content">P(3 одинаковых) = 7/7³ = 7/343 = 1/49 &approx; <span style="color: #2ecc71;">2.04%</span></div>
-            <div class="formula-content">House Edge = 1 − (1/49 × 10) &approx; <span style="color: #e74c3c;">79.6%</span></div>
+            <div class="formula-content">ПК = 1 − (1/49 × 10) ≈ <span style="color: #e74c3c;">79,6%</span></div>
         </div>
         
         <div class="input-group" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
             <div style="flex: 1; min-width: 150px;">
                 <label>Размер ставки ($)</label>
-                <input type="number" id="slot-bet" min="1" max="100000" value="50">
+                <input type="text" id="slot-bet" class="money-input betting-amount-input" inputmode="numeric" min="1" max="100000" value="50">
             </div>
             <div style="flex: 1; min-width: 150px;">
                 <label>Итераций симуляции (1-200)</label>
@@ -1332,9 +1613,12 @@ function createSlotsGame() {
             </div>
         </div>
 
-        <div class="game-buttons grid-1">
-            <button class="btn-play" onclick="playSlots()">🎰 Вращать барабаны</button>
-        </div>
+        <fieldset class="a11y-fieldset game-bet-fieldset">
+            <legend>Действие в слотах</legend>
+            <div class="game-buttons grid-1">
+                <button type="button" class="btn-play" onclick="playSlots()" aria-label="Вращать барабаны слотов">🎰 Вращать барабаны</button>
+            </div>
+        </fieldset>
 
         <div id="slot-display" class="game-display">
             <div>
@@ -1350,7 +1634,7 @@ function createSlotsGame() {
 
         <div id="slot-result"></div>
         <div style="text-align: center; color: #f39c12; font-weight: bold; font-size: 1.2rem; margin: 1rem 0; padding: 1rem; background: rgba(243, 156, 18, 0.1); border-radius: 8px;">
-            💰 Баланс: $<span id="balance-display">${balance}</span>
+            💰 Баланс: $<span id="balance-display">${formatMoney(balance)}</span>
         </div>
         <div id="slot-stats" class="statistics"></div>
     `;
@@ -1360,7 +1644,7 @@ function playSlots() {
     const betInput = document.getElementById('slot-bet');
     if (!betInput) return;
 
-    const bet = parseInt(betInput.value);
+    const bet = getMoneyInputValue(betInput);
     if (balance <= 0) {
         showAlert('У вас нулевой баланс! Пожалуйста, пополните депозит.');
         openDepositModal();
@@ -1375,7 +1659,7 @@ function playSlots() {
     gameStats.totalBets += bet;
     updateGlobalBalance();
     const balanceDisplay = document.getElementById('balance-display');
-    if (balanceDisplay) balanceDisplay.textContent = balance;
+    if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
 
     // Reset result message to spinning state
     const resultDiv = document.getElementById('slot-result');
@@ -1429,7 +1713,7 @@ function playSlots() {
         document.getElementById('reel2').textContent = finalReels[1];
         document.getElementById('reel3').textContent = finalReels[2];
         const balanceDisplay = document.getElementById('balance-display');
-        if (balanceDisplay) balanceDisplay.textContent = balance;
+        if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
         updateGlobalBalance();
 
         const resultDiv = document.getElementById('slot-result');
@@ -1447,14 +1731,14 @@ function playSlots() {
             gameStats.totalWins += win;
             gameStats.winCount++;
             resultDiv.className = 'result-message win';
-            resultDiv.textContent = `✅ ДЖЕКПОТ! (+$${win})`;
+            resultDiv.textContent = `✅ ДЖЕКПОТ! (${formatUsdSigned(win)})`;
             playWinSound();
             slotDisplay.style.animation = 'winPulse 0.6s ease';
             recordBet('slots', bet, 'win', win);
         } else {
             gameStats.loseCount++;
             resultDiv.className = 'result-message lose';
-            resultDiv.textContent = `❌ Не повезло (-$${bet})`;
+            resultDiv.textContent = `❌ Не повезло (${formatUsdSigned(-bet)})`;
             slotDisplay.style.animation = 'shake 0.5s ease';
             playLoseSound();
             recordBet('slots', bet, 'lose', 0);
@@ -1478,7 +1762,7 @@ function createWheelGame() {
         <div class="input-group" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
             <div style="flex: 1; min-width: 150px;">
                 <label>Размер ставки ($)</label>
-                <input type="number" id="wheel-bet" min="1" max="100000" value="50">
+                <input type="text" id="wheel-bet" class="money-input betting-amount-input" inputmode="numeric" min="1" max="100000" value="50">
             </div>
             <div style="flex: 1; min-width: 150px;">
                 <label>Итераций симуляции (1-200)</label>
@@ -1489,12 +1773,15 @@ function createWheelGame() {
             </div>
         </div>
 
-        <div class="game-buttons grid-2">
-            <button class="btn-play" onclick="playWheel('star')">⭐ Звезда</button>
-            <button class="btn-play" onclick="playWheel('heart')">❤️ Сердце</button>
-            <button class="btn-play" onclick="playWheel('diamond')">💎 Алмаз</button>
-            <button class="btn-play" onclick="playWheel('clover')">🍀 Клевер</button>
-        </div>
+        <fieldset class="a11y-fieldset game-bet-fieldset">
+            <legend>Выберите сектор колеса</legend>
+            <div class="game-buttons grid-2">
+                <button type="button" class="btn-play" onclick="playWheel('star')" aria-label="Ставка на звезду">⭐ Звезда</button>
+                <button type="button" class="btn-play" onclick="playWheel('heart')" aria-label="Ставка на сердце">❤️ Сердце</button>
+                <button type="button" class="btn-play" onclick="playWheel('diamond')" aria-label="Ставка на алмаз">💎 Алмаз</button>
+                <button type="button" class="btn-play" onclick="playWheel('clover')" aria-label="Ставка на клевер">🍀 Клевер</button>
+            </div>
+        </fieldset>
 
         <div style="margin-top: 1rem;">
             <button class="btn-reset" onclick="resetCasinoBalance()" style="width: 100%;">💳 Установить баланс (Депозит)</button>
@@ -1506,7 +1793,7 @@ function createWheelGame() {
 
         <div id="wheel-result"></div>
         <div style="text-align: center; color: #f39c12; font-weight: bold; font-size: 1.2rem; margin: 1rem 0; padding: 1rem; background: rgba(243, 156, 18, 0.1); border-radius: 8px;">
-            💰 Баланс: $<span id="balance-display">${balance}</span>
+            💰 Баланс: $<span id="balance-display">${formatMoney(balance)}</span>
         </div>
         <div id="wheel-stats" class="statistics"></div>
     `;
@@ -1516,7 +1803,7 @@ function playWheel(choice) {
     const betInput = document.getElementById('wheel-bet');
     if (!betInput) return;
 
-    const bet = parseInt(betInput.value);
+    const bet = getMoneyInputValue(betInput);
     if (balance <= 0) {
         showAlert('У вас нулевой баланс! Пожалуйста, пополните депозит.');
         openDepositModal();
@@ -1531,7 +1818,7 @@ function playWheel(choice) {
     gameStats.totalBets += bet;
     updateGlobalBalance();
     const balanceDisplay = document.getElementById('balance-display');
-    if (balanceDisplay) balanceDisplay.textContent = balance;
+    if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
 
     const resultDiv = document.getElementById('wheel-result');
     if (resultDiv) {
@@ -1587,18 +1874,18 @@ function finishWheel(bet, choice, symbols) {
         gameStats.totalWins += win;
         gameStats.winCount++;
         resultDiv.className = 'result-message win';
-        resultDiv.textContent = `✅ ВЫИГРЫШ! (+$${win}) Выпал символ: ${resultSymbol}`;
+        resultDiv.textContent = `✅ ВЫИГРЫШ! (${formatUsdSigned(win)}) Выпал символ: ${resultSymbol}`;
         playWinSound();
         recordBet('wheel', bet, 'win', win);
     } else {
         gameStats.loseCount++;
         resultDiv.className = 'result-message lose';
-        resultDiv.textContent = `❌ ПРОИГРЫШ! (-$${bet}) Выпал символ: ${resultSymbol}`;
+        resultDiv.textContent = `❌ ПРОИГРЫШ! (${formatUsdSigned(-bet)}) Выпал символ: ${resultSymbol}`;
         playLoseSound();
         recordBet('wheel', bet, 'lose', 0);
     }
     const balanceDisplay = document.getElementById('balance-display');
-    if (balanceDisplay) balanceDisplay.textContent = balance;
+    if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
     updateGlobalBalance();
     updateStats();
 }
@@ -1617,7 +1904,7 @@ function createDiceGame() {
         <div class="input-group" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
             <div style="flex: 1; min-width: 150px;">
                 <label>Размер ставки ($)</label>
-                <input type="number" id="dice-bet" min="1" max="100000" value="50">
+                <input type="text" id="dice-bet" class="money-input betting-amount-input" inputmode="numeric" min="1" max="100000" value="50">
             </div>
             <div style="flex: 1; min-width: 150px;">
                 <label>Итераций симуляции (1-200)</label>
@@ -1628,11 +1915,14 @@ function createDiceGame() {
             </div>
         </div>
 
-        <div class="game-buttons grid-3">
-            <button class="btn-play" onclick="playDice('under')">📉 Меньше 7</button>
-            <button class="btn-play" style="background: #9b59b6;" onclick="playDice('seven')">🎯 Ровно 7</button>
-            <button class="btn-play" onclick="playDice('over')">📈 Больше 7</button>
-        </div>
+        <fieldset class="a11y-fieldset game-bet-fieldset">
+            <legend>Выберите исход броска костей</legend>
+            <div class="game-buttons grid-3">
+                <button type="button" class="btn-play" onclick="playDice('under')" aria-label="Сумма костей меньше 7">📉 Меньше 7</button>
+                <button type="button" class="btn-play" style="background: #9b59b6;" onclick="playDice('seven')" aria-label="Сумма костей ровно 7">🎯 Ровно 7</button>
+                <button type="button" class="btn-play" onclick="playDice('over')" aria-label="Сумма костей больше 7">📈 Больше 7</button>
+            </div>
+        </fieldset>
 
         <div class="dice-container">
             <div id="dice1" class="dice-val">🎲</div> 
@@ -1645,7 +1935,7 @@ function createDiceGame() {
 
         <div id="dice-result"></div>
         <div style="text-align: center; color: #f39c12; font-weight: bold; font-size: 1.2rem; margin: 1rem 0; padding: 1rem; background: rgba(243, 156, 18, 0.1); border-radius: 8px;">
-            💰 Баланс: $<span id="balance-display">${balance}</span>
+            💰 Баланс: $<span id="balance-display">${formatMoney(balance)}</span>
         </div>
         <div id="dice-stats" class="statistics"></div>
     `;
@@ -1655,7 +1945,7 @@ function playDice(choice) {
     const betInput = document.getElementById('dice-bet');
     if (!betInput) return;
 
-    const bet = parseInt(betInput.value);
+    const bet = getMoneyInputValue(betInput);
     if (balance <= 0) {
         showAlert('У вас нулевой баланс! Пожалуйста, пополните депозит.');
         openDepositModal();
@@ -1670,7 +1960,7 @@ function playDice(choice) {
     gameStats.totalBets += bet;
     updateGlobalBalance();
     const balanceDisplay = document.getElementById('balance-display');
-    if (balanceDisplay) balanceDisplay.textContent = balance;
+    if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
 
     const dice1 = document.getElementById('dice1');
     const dice2 = document.getElementById('dice2');
@@ -1757,31 +2047,41 @@ function playDice(choice) {
             gameStats.totalWins += win;
             gameStats.winCount++;
             resultDiv.className = 'result-message win';
-            resultDiv.textContent = `✅ ВЫИГРЫШ! Сумма: ${finalSum} (+$${win})`;
+            resultDiv.textContent = `✅ ВЫИГРЫШ! Сумма: ${finalSum} (${formatUsdSigned(win)})`;
             playWinSound();
             recordBet('dice', bet, 'win', win);
         } else {
             gameStats.loseCount++;
             resultDiv.className = 'result-message lose';
-            resultDiv.textContent = `❌ ПРОИГРЫШ! Сумма: ${finalSum} (-$${bet})`;
+            resultDiv.textContent = `❌ ПРОИГРЫШ! Сумма: ${finalSum} (${formatUsdSigned(-bet)})`;
             playLoseSound();
             recordBet('dice', bet, 'lose', 0);
         }
 
         const balanceDisplay = document.getElementById('balance-display');
-        if (balanceDisplay) balanceDisplay.textContent = balance;
+        if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
         updateGlobalBalance();
         updateStats();
     }, 1050);
 }
 
-// ===== МОНЕТА  =====
+// ===== МОНЕТКА =====
+const COIN_SIDE = {
+    heads: { label: 'Желтый', emoji: '🟡' },
+    tails: { label: 'Оранжевый', emoji: '🟠' }
+};
+
+function getCoinSideText(side) {
+    const s = COIN_SIDE[side];
+    return s ? `${s.label} ${s.emoji}` : '';
+}
+
 function createCoinGame() {
     return `
-        <h2>🟡 Орел и 🟠 Решка</h2>
+        <h2>🟡 Монетка</h2>
         <div class="beautiful-formula">
             <div class="formula-title">📐 Схема Бернулли (Независимые испытания)</div>
-            <div class="formula-content">P(Орел) = P(Решка) = 1/2 = <span style="color: #2ecc71;">50%</span></div>
+            <div class="formula-content">P(Желтый) = P(Оранжевый) = 1/2 = <span style="color: #2ecc71;">50%</span></div>
             <div class="formula-content">Выплата: <span style="color: #f1c40f;">2 к 1</span> (ставка удваивается при победе)</div>
             <div class="formula-content">E(X) = (0.5 × 1) − (0.5 × 1) = <span style="color:#2ecc71;">0 (честная игра)</span></div>
         </div>
@@ -1789,7 +2089,7 @@ function createCoinGame() {
         <div class="input-group" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
             <div style="flex: 1; min-width: 150px;">
                 <label>Размер ставки ($)</label>
-                <input type="number" id="coin-bet" min="1" max="100000" value="50">
+                <input type="text" id="coin-bet" class="money-input betting-amount-input" inputmode="numeric" min="1" max="100000" value="50">
             </div>
             <div style="flex: 1; min-width: 150px;">
                 <label>Итераций симуляции (1-200)</label>
@@ -1800,10 +2100,13 @@ function createCoinGame() {
             </div>
         </div>
 
-        <div class="game-buttons">
-            <button class="btn-play" onclick="playCoin('heads')">🟡 Орел</button>
-            <button class="btn-play" onclick="playCoin('tails')">🟠 Решка</button>
-        </div>
+        <fieldset class="a11y-fieldset game-bet-fieldset">
+            <legend>Выберите сторону монеты</legend>
+            <div class="game-buttons">
+                <button type="button" class="btn-play" onclick="playCoin('heads')" aria-label="Ставка на желтую сторону">🟡 Желтый</button>
+                <button type="button" class="btn-play" onclick="playCoin('tails')" aria-label="Ставка на оранжевую сторону">🟠 Оранжевый</button>
+            </div>
+        </fieldset>
 
         <div id="coin-display" class="game-display">
             <div id="coin-visual" class="coin-visual">🟡</div>
@@ -1815,7 +2118,7 @@ function createCoinGame() {
 
         <div id="coin-result"></div>
         <div style="text-align: center; color: #f39c12; font-weight: bold; font-size: 1.2rem; margin: 1rem 0; padding: 1rem; background: rgba(243, 156, 18, 0.1); border-radius: 8px;">
-            💰 Баланс: $<span id="balance-display">${balance}</span>
+            💰 Баланс: $<span id="balance-display">${formatMoney(balance)}</span>
         </div>
         <div id="coin-stats" class="statistics"></div>
     `;
@@ -1825,7 +2128,7 @@ function playCoin(choice) {
     const betInput = document.getElementById('coin-bet');
     if (!betInput) return;
 
-    const bet = parseInt(betInput.value);
+    const bet = getMoneyInputValue(betInput);
     if (balance <= 0) {
         showAlert('У вас нулевой баланс! Пожалуйста, пополните депозит.');
         openDepositModal();
@@ -1840,7 +2143,7 @@ function playCoin(choice) {
     gameStats.totalBets += bet;
     updateGlobalBalance();
     const balanceDisplay = document.getElementById('balance-display');
-    if (balanceDisplay) balanceDisplay.textContent = balance;
+    if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
 
     const coinVisual = document.getElementById('coin-visual');
     const resultDiv = document.getElementById('coin-result');
@@ -1873,20 +2176,20 @@ function playCoin(choice) {
             gameStats.winCount++;
             resultDiv.className = 'result-message win';
             resultDiv.style.display = 'block';
-            resultDiv.textContent = `✅ ВЫИГРЫШ! Выпал: ${result === 'heads' ? 'Орел 🟡' : 'Решка 🟠'} (+$${win})`;
+            resultDiv.textContent = `✅ ВЫИГРЫШ! Выпал: ${getCoinSideText(result)} (${formatUsdSigned(win)})`;
             playWinSound();
             recordBet('coin', bet, 'win', win);
         } else {
             gameStats.loseCount++;
             resultDiv.className = 'result-message lose';
             resultDiv.style.display = 'block';
-            resultDiv.textContent = `❌ ПРОИГРЫШ! Выпал: ${result === 'heads' ? 'Орел 🟡' : 'Решка 🟠'} (-$${bet})`;
+            resultDiv.textContent = `❌ ПРОИГРЫШ! Выпал: ${getCoinSideText(result)} (${formatUsdSigned(-bet)})`;
             playLoseSound();
             recordBet('coin', bet, 'lose', 0);
         }
 
         const balanceDisplay = document.getElementById('balance-display');
-        if (balanceDisplay) balanceDisplay.textContent = balance;
+        if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
         updateGlobalBalance();
         updateStats();
     }, 1500);
@@ -1907,13 +2210,13 @@ function createBlackjackGame() {
             <div class="formula-title">📐 Условная вероятность P(A|B)</div>
             <div class="formula-content">P(Блэкджек) = 2 × (4/52 × 16/51) &approx; <span style="color: #2ecc71;">4.83%</span></div>
             <div class="formula-content">Выплата за Блэкджек: <span style="color: #f1c40f;">3:2</span> | Обычная победа: <span style="color: #f1c40f;">1:1</span></div>
-            <div class="formula-content">House Edge (Базовая стратегия) = <span style="color:#e74c3c;">0.5%</span></div>
+            <div class="formula-content">ПК (базовая стратегия) = <span style="color:#e74c3c;">0,5%</span></div>
         </div>
         
         <div class="input-group" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
             <div style="flex: 1; min-width: 150px;">
                 <label>Размер ставки ($)</label>
-                <input type="number" id="bj-bet" min="1" max="100000" value="50">
+                <input type="text" id="bj-bet" class="money-input betting-amount-input" inputmode="numeric" min="1" max="100000" value="50">
             </div>
             <div style="flex: 1; min-width: 150px;">
                 <label>Итераций симуляции (1-200)</label>
@@ -1924,14 +2227,16 @@ function createBlackjackGame() {
             </div>
         </div>
 
-        <div id="bj-controls" class="game-buttons grid-1">
-            <button class="btn-play" onclick="startBlackjack()">🃏 Раздать карты</button>
-        </div>
-
-        <div id="bj-actions" class="game-buttons grid-2" style="display: none; margin-top: 10px;">
-            <button class="btn-play" style="background: #27ae60;" onclick="bjHit()">👊 Взять</button>
-            <button class="btn-play" style="background: #c0392b;" onclick="bjStand()">🛑 Хватит</button>
-        </div>
+        <fieldset class="a11y-fieldset game-bet-fieldset" id="bj-controls-fieldset">
+            <legend>Управление партией в блэкджеке</legend>
+            <div id="bj-controls" class="game-buttons grid-1">
+                <button type="button" class="btn-play" onclick="startBlackjack()" aria-label="Раздать карты и начать партию">🃏 Раздать карты</button>
+            </div>
+            <div id="bj-actions" class="game-buttons grid-2" style="display: none; margin-top: 10px;">
+                <button type="button" class="btn-play" style="background: #27ae60;" onclick="bjHit()" aria-label="Взять ещё одну карту">👊 Взять</button>
+                <button type="button" class="btn-play" style="background: #c0392b;" onclick="bjStand()" aria-label="Остановиться, ход дилера">🛑 Хватит</button>
+            </div>
+        </fieldset>
 
         <div id="bj-display" class="bj-table">
             <div class="bj-hand-container">
@@ -1955,7 +2260,7 @@ function createBlackjackGame() {
 
         <div id="bj-result"></div>
         <div style="text-align: center; color: #f39c12; font-weight: bold; font-size: 1.2rem; margin: 1rem 0; padding: 1rem; background: rgba(243, 156, 18, 0.1); border-radius: 8px;">
-            💰 Баланс: $<span id="balance-display">${balance}</span>
+            💰 Баланс: $<span id="balance-display">${formatMoney(balance)}</span>
         </div>
         <div id="bj-stats" class="statistics"></div>
     `;
@@ -2024,7 +2329,7 @@ function startBlackjack() {
     const betInput = document.getElementById('bj-bet');
     if (!betInput) return;
 
-    const bet = parseInt(betInput.value);
+    const bet = getMoneyInputValue(betInput);
     if (balance <= 0) {
         showAlert('У вас нулевой баланс! Пожалуйста, пополните депозит.');
         openDepositModal();
@@ -2052,7 +2357,7 @@ function startBlackjack() {
     document.getElementById('bj-actions').style.display = 'grid';
     document.getElementById('bj-result').textContent = '';
     document.getElementById('bj-result').className = '';
-    document.getElementById('balance-display').textContent = balance;
+    document.getElementById('balance-display').textContent = formatMoney(balance);
     updateGlobalBalance();
 
     updateBJUI(true);
@@ -2100,7 +2405,7 @@ function endBlackjack(playerStood) {
     if (pSum > 21) {
         gameStats.loseCount++;
         resultDiv.className = 'result-message lose';
-        resultDiv.textContent = `❌ ПЕРЕБОР! У вас ${pSum}. (-$${bjBet})`;
+        resultDiv.textContent = `❌ ПЕРЕБОР! У вас ${pSum}. (${formatUsdSigned(-bjBet)})`;
         playLoseSound();
         recordBet('blackjack', bjBet, 'lose', 0);
     } else if (dSum > 21) {
@@ -2109,7 +2414,7 @@ function endBlackjack(playerStood) {
         gameStats.totalWins += win;
         gameStats.winCount++;
         resultDiv.className = 'result-message win';
-        resultDiv.textContent = `✅ ПОБЕДА (ДИЛЕР ПЕРЕБРАЛ!) (+$${win})`;
+        resultDiv.textContent = `✅ ПОБЕДА (ДИЛЕР ПЕРЕБРАЛ!) (${formatUsdSigned(win)})`;
         playWinSound();
         recordBet('blackjack', bjBet, 'win', win);
     } else if (pSum > dSum) {
@@ -2120,7 +2425,7 @@ function endBlackjack(playerStood) {
         gameStats.totalWins += win;
         gameStats.winCount++;
         resultDiv.className = 'result-message win';
-        resultDiv.textContent = `✅ ПОБЕДА! ${pSum} > ${dSum} (+$${win})`;
+        resultDiv.textContent = `✅ ПОБЕДА! ${pSum} > ${dSum} (${formatUsdSigned(win)})`;
         playWinSound();
         recordBet('blackjack', bjBet, 'win', win);
     } else if (pSum === dSum) {
@@ -2137,7 +2442,7 @@ function endBlackjack(playerStood) {
     }
 
     const balanceDisplay = document.getElementById('balance-display');
-    if (balanceDisplay) balanceDisplay.textContent = balance;
+    if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
     updateGlobalBalance();
     updateStats();
 }
@@ -2152,11 +2457,11 @@ function updateStats() {
         statsDiv.innerHTML = `
             <div class="stat-row">
                 <span class="stat-label">💰 Баланс:</span>
-                <span class="stat-value">$${balance}</span>
+                <span class="stat-value">${formatUsd(balance)}</span>
             </div>
             <div class="stat-row">
                 <span class="stat-label">💸 Всего ставок:</span>
-                <span class="stat-value">$${gameStats.totalBets}</span>
+                <span class="stat-value">${formatUsd(gameStats.totalBets)}</span>
             </div>
             <div class="stat-row">
                 <span class="stat-label">✅ Побед:</span>
@@ -2199,42 +2504,6 @@ function playLoseSound() {
 
 // CSS animations moved to styles.css
 
-// Инициализация при загрузке страницы
-document.addEventListener('DOMContentLoaded', () => {
-    // Убеждаемся, что все неактивные секции скрыты
-    const sections = document.querySelectorAll('.section');
-    sections.forEach(section => {
-        if (!section.classList.contains('active')) {
-            section.style.display = 'none';
-        }
-    });
-
-    // Убеждаемся, что активная секция видна
-    const firstSection = document.querySelector('.section.active');
-    if (firstSection) {
-        firstSection.style.display = 'block';
-
-        // Добавляем анимацию появления для первой секции
-        requestAnimationFrame(() => {
-            firstSection.classList.add('section-entering');
-            setTimeout(() => {
-                firstSection.classList.remove('section-entering');
-            }, 500);
-        });
-    }
-
-    // Плавная анимация появления элементов в активной секции
-    setTimeout(() => {
-        const elements = firstSection ? firstSection.querySelectorAll('.content-block, .game-card') : [];
-        elements.forEach((el, index) => {
-            setTimeout(() => {
-                el.style.opacity = '0';
-                el.style.animation = 'fadeInUp 0.6s ease forwards';
-            }, index * 50);
-        });
-    }, 100);
-});
-
 // ===== ТАБЫ СЕКЦИИ ВЕРОЯТНОСТИ =====
 function switchProbTab(tabId) {
     // Скрываем все контенты
@@ -2271,7 +2540,7 @@ function createRPSGame() {
         <div class="input-group" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
             <div style="flex: 1; min-width: 150px;">
                 <label>Размер ставки ($)</label>
-                <input type="number" id="rps-bet" min="1" max="100000" value="50">
+                <input type="text" id="rps-bet" class="money-input betting-amount-input" inputmode="numeric" min="1" max="100000" value="50">
             </div>
             <div style="flex: 1; min-width: 150px;">
                 <label>Итераций симуляции (1-200)</label>
@@ -2282,11 +2551,14 @@ function createRPSGame() {
             </div>
         </div>
 
-        <div class="game-buttons grid-3">
-            <button class="btn-play" onclick="playRPS('rock')" style="background: linear-gradient(135deg, #7f8c8d, #95a5a6);">🗿 Камень</button>
-            <button class="btn-play" onclick="playRPS('scissors')" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">✂️ Ножницы</button>
-            <button class="btn-play" onclick="playRPS('paper')" style="background: linear-gradient(135deg, #ecf0f1, #bdc3c7); color: #2c3e50;">📄 Бумага</button>
-        </div>
+        <fieldset class="a11y-fieldset game-bet-fieldset">
+            <legend>Выберите свой ход</legend>
+            <div class="game-buttons grid-3">
+                <button type="button" class="btn-play" onclick="playRPS('rock')" style="background: linear-gradient(135deg, #7f8c8d, #95a5a6);" aria-label="Ход: камень">🗿 Камень</button>
+                <button type="button" class="btn-play" onclick="playRPS('scissors')" style="background: linear-gradient(135deg, #e74c3c, #c0392b);" aria-label="Ход: ножницы">✂️ Ножницы</button>
+                <button type="button" class="btn-play" onclick="playRPS('paper')" style="background: linear-gradient(135deg, #ecf0f1, #bdc3c7); color: #2c3e50;" aria-label="Ход: бумага">📄 Бумага</button>
+            </div>
+        </fieldset>
 
         <div class="game-display rps-display">
             <div id="player-choice" class="rps-choice">❓</div>
@@ -2300,7 +2572,7 @@ function createRPSGame() {
 
         <div id="rps-result"></div>
         <div style="text-align: center; color: #f39c12; font-weight: bold; font-size: 1.2rem; margin: 1rem 0; padding: 1rem; background: rgba(243, 156, 18, 0.1); border-radius: 8px;">
-            💰 Баланс: $<span id="balance-display">${balance}</span>
+            💰 Баланс: $<span id="balance-display">${formatMoney(balance)}</span>
         </div>
         <div id="rps-stats" class="statistics"></div>
     `;
@@ -2310,7 +2582,7 @@ function playRPS(playerMove) {
     const betInput = document.getElementById('rps-bet');
     if (!betInput) return;
 
-    const bet = parseInt(betInput.value);
+    const bet = getMoneyInputValue(betInput);
     if (balance <= 0) {
         showAlert('У вас нулевой баланс! Пожалуйста, пополните депозит.');
         openDepositModal();
@@ -2327,7 +2599,7 @@ function playRPS(playerMove) {
     // Обновляем дисплеи сразу после ставки
     updateGlobalBalance();
     const balanceDisplay = document.getElementById('balance-display');
-    if (balanceDisplay) balanceDisplay.textContent = balance;
+    if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
 
     // Сброс UI
     document.getElementById('rps-result').style.display = 'none';
@@ -2381,7 +2653,7 @@ function finishRPS(playerMove, bet) {
         gameStats.winCount++;
         resultDiv.className = 'result-message win';
         resultDiv.style.display = 'block';
-        resultDiv.textContent = `✅ ПОБЕДА! (+$${win})`;
+        resultDiv.textContent = `✅ ПОБЕДА! (${formatUsdSigned(win)})`;
         document.querySelector('.rps-display').style.animation = 'winPulse 0.6s ease';
         playWinSound();
         recordBet('rps', bet, 'win', win);
@@ -2395,7 +2667,7 @@ function finishRPS(playerMove, bet) {
         gameStats.loseCount++;
         resultDiv.className = 'result-message lose';
         resultDiv.style.display = 'block';
-        resultDiv.textContent = `❌ ПОРАЖЕНИЕ! (-$${bet})`;
+        resultDiv.textContent = `❌ ПОРАЖЕНИЕ! (${formatUsdSigned(-bet)})`;
         document.querySelector('.rps-display').style.animation = 'shake 0.5s ease';
         playLoseSound();
         recordBet('rps', bet, 'lose', 0);
@@ -2403,7 +2675,7 @@ function finishRPS(playerMove, bet) {
 
 
     const balanceDisplay = document.getElementById('balance-display');
-    if (balanceDisplay) balanceDisplay.textContent = balance;
+    if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
     updateGlobalBalance();
     updateStats();
 }
@@ -2497,7 +2769,7 @@ function simulateMatch(xgHome, xgAway) {
 
 // --- UI Functions ---
 
-function updateBettingOdds() {
+function updateBettingOddsCore() {
     const xgHome = parseFloat(document.getElementById('xg-home').value);
     const xgAway = parseFloat(document.getElementById('xg-away').value);
     const margin = parseFloat(document.getElementById('betting-margin').value);
@@ -2543,13 +2815,32 @@ function updateBettingOdds() {
     }
 }
 
-function placeBet(outcome) {
-    // Remove all selected
-    document.querySelectorAll('.odds-card').forEach(c => c.classList.remove('selected'));
+const updateBettingOdds = debounce(updateBettingOddsCore, 40);
 
-    // Select new
+function initApp() {
+    updateGlobalBalance();
+    renderBetHistory();
+    updateLossCalculator();
+    updateStats();
+    initScrollToTop();
+    initAllMoneyInputs();
+    initAccessibility();
+    initAppNavigation();
+    restoreActiveSectionOnLoad();
+}
+
+document.addEventListener('DOMContentLoaded', initApp);
+
+function placeBet(outcome) {
+    document.querySelectorAll('.odds-card').forEach(c => {
+        c.classList.remove('selected');
+        c.setAttribute('aria-pressed', 'false');
+    });
+
     const map = { p1: 'odds-p1', x: 'odds-x', p2: 'odds-p2', over: 'odds-over', under: 'odds-under' };
-    document.getElementById(map[outcome]).classList.add('selected');
+    const selected = document.getElementById(map[outcome]);
+    selected.classList.add('selected');
+    selected.setAttribute('aria-pressed', 'true');
 
     bettingSelectedOutcome = outcome;
 
@@ -2568,18 +2859,18 @@ function placeBet(outcome) {
 
 function validateBetAmount() {
     const input = document.getElementById('betting-amount');
-    let val = parseInt(input.value);
+    let val = getMoneyInputValue(input);
     if (isNaN(val) || val < 1) val = 1;
     if (val > balance) val = Math.floor(balance);
     if (balance <= 0) val = 0;
-    input.value = val;
+    setMoneyInputValue(input, val);
 }
 
 function runBettingSimulation() {
     if (!bettingSelectedOutcome) return;
 
     validateBetAmount();
-    const betAmount = parseInt(document.getElementById('betting-amount').value);
+    const betAmount = getMoneyInputValue('betting-amount');
 
     if (balance <= 0) {
         showAlert('У вас нулевой баланс! Пожалуйста, пополните депозит.');
@@ -2655,19 +2946,19 @@ function checkBetResult(score) {
     const coeff = bettingOddsData.coefficients[bettingSelectedOutcome];
     const labels = { p1: 'П1 (Хозяева)', x: 'Х (Ничья)', p2: 'П2 (Гости)', over: 'Тотал Б 2.5', under: 'Тотал М 2.5' };
 
-    const betAmount = parseInt(document.getElementById('betting-amount').value);
+    const betAmount = getMoneyInputValue('betting-amount');
 
     if (won) {
         const winAmount = Math.floor(betAmount * coeff);
         const netProfit = winAmount - betAmount;
         balance += netProfit;
         updateGlobalBalance();
-        showInlineNotif('win', `Счёт ${score.home}:${score.away}. Победа! Выплата: $${winAmount} (Чистыми: +$${netProfit})`);
+        showInlineNotif('win', `Счёт ${score.home}:${score.away}. Победа! Выплата: ${formatUsd(winAmount)} (Чистыми: ${formatUsdSigned(netProfit)})`);
         recordBet('betting', betAmount, 'win', winAmount);
     } else {
         balance -= betAmount;
         updateGlobalBalance();
-        showInlineNotif('lose', `Счёт ${score.home}:${score.away}. Ставка проиграла (-$${betAmount}).`);
+        showInlineNotif('lose', `Счёт ${score.home}:${score.away}. Ставка проиграла (${formatUsdSigned(-betAmount)}).`);
         recordBet('betting', betAmount, 'lose', 0);
     }
 
@@ -2701,17 +2992,6 @@ function showInlineNotif(type, message) {
     }, 8000);
 }
 
-// Auto-initialize odds when betting section is shown
-const originalSwitchSection = switchSection;
-switchSection = function (sectionId, clickedElement) {
-    originalSwitchSection(sectionId, clickedElement);
-    if (sectionId === 'betting') {
-        setTimeout(() => {
-            updateBettingOdds();
-        }, 350);
-    }
-};
-
 // ===== СИМУЛЯЦИЯ ИГР И ОТРИСОВКА ГРАФИКА =====
 let simChartInstance = null;
 
@@ -2725,7 +3005,7 @@ function runSimulation(gameType) {
                             gameType === 'betting' ? 'betting-amount' : 'bet-amount';
     const betInput = document.getElementById(betInputId);
     if (!betInput) return;
-    const bet = parseInt(betInput.value);
+    const bet = getMoneyInputValue(betInput);
 
     if (balance <= 0) {
         showAlert('У вас нулевой баланс! Пожалуйста, пополните депозит для запуска симуляции.');
@@ -2782,7 +3062,7 @@ function runSimulation(gameType) {
     localStorage.setItem('casinoBalance', balance);
     // update global balance display
     const balanceDisplay = document.getElementById('balance-display');
-    if (balanceDisplay) balanceDisplay.textContent = Math.floor(balance);
+    if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
     updateGlobalBalance();
 
     const totalWager = bet * iterations;
@@ -2800,7 +3080,7 @@ function runSimulation(gameType) {
     // Записываем всю симуляцию как один пак в историю
     const gameNiceNames = {
         roulette: '🎡 Рулетка', slots: '🎰 Слоты', wheel: '🎪 Колесо',
-        dice: '🎲 Кости', coin: '🟡 Монета', blackjack: '🃏 Блэкджек', rps: '✂️ КНБ',
+        dice: '🎲 Кости', coin: '🟡 Монетка', blackjack: '🃏 Блэкджек', rps: '✂️ КНБ',
         betting: '⚽ Фут. Ставки'
     };
     const niceName = gameNiceNames[gameType] || gameType;
@@ -2884,7 +3164,7 @@ function showSimulationResult(initialBalance, finalBalance, iterations, bet, his
 
     document.getElementById('simResultHeader').innerHTML = `
         <h3 style="color: ${headerColor}; margin-bottom: 0.5rem;">Итоги симуляции (${iterations} игр)</h3>
-        <p style="color: ${subColor}; margin-bottom: 0.5rem;">Начальный баланс: $${initialBalance} | Итоговый баланс: $${Math.floor(finalBalance)}</p>
+        <p style="color: ${subColor}; margin-bottom: 0.5rem;">Начальный баланс: ${formatUsd(initialBalance)} | Итоговый баланс: ${formatUsd(finalBalance)}</p>
         <p style="color: ${subColor}; font-size: 0.9rem; margin-bottom: 1rem;">
             <em>💡 График показывает изменение вашего баланса слева (ось Y) от каждой сыгранной партии снизу (ось X).</em>
         </p>
@@ -2894,7 +3174,7 @@ function showSimulationResult(initialBalance, finalBalance, iterations, bet, his
             <span style="color: #f1c40f;">🤝 Ничьих: ${draws}</span>
         </div>
         <div class="result-message ${profitClass}" style="display: block; margin-bottom: 20px;">
-            ${profit >= 0 ? '✅ Общая прибыль' : '❌ Общий убыток'}: $${Math.floor(Math.abs(profit))}
+            ${profit >= 0 ? '✅ Общая прибыль' : '❌ Общий убыток'}: ${formatUsd(Math.abs(profit))}
         </div>
     `;
 
@@ -2937,7 +3217,7 @@ function createChart(historyData, initialBalance, finalBalance, isProfit) {
         data: {
             labels: labels,
             datasets: [{
-                label: 'Баланс (Bankroll)',
+                label: 'Баланс (банкролл)',
                 data: dataPoints,
                 borderColor: borderColor,
                 backgroundColor: gradient,
@@ -2955,7 +3235,10 @@ function createChart(historyData, initialBalance, finalBalance, isProfit) {
                 y: {
                     beginAtZero: false,
                     grid: { color: gridColor },
-                    ticks: { color: textColor },
+                    ticks: {
+                        color: textColor,
+                        callback: (value) => formatUsd(value)
+                    },
                     title: {
                         display: false
                     }
@@ -2976,7 +3259,7 @@ function createChart(historyData, initialBalance, finalBalance, isProfit) {
                 tooltip: {
                     callbacks: {
                         label: function (context) {
-                            return 'Баланс: $' + context.raw;
+                            return 'Баланс: ' + formatUsd(context.raw);
                         }
                     }
                 }

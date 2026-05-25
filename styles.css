@@ -56,15 +56,26 @@ a,
 /* Секции — плавное появление/скрытие (fade + slide) */
 .section {
     opacity: 0;
-    transform: translateY(16px);
-    transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-        transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: opacity, transform;
+    transform: translateY(12px);
+    transition: opacity 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+        transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    contain: layout style paint;
+}
+
+.section:not(.active) {
+    content-visibility: hidden;
+    pointer-events: none;
 }
 
 .section.active {
     opacity: 1;
     transform: translateY(0);
+    content-visibility: visible;
+    pointer-events: auto;
+}
+
+.section.is-transitioning {
+    will-change: opacity, transform;
 }
 
 .section.section-exiting {
@@ -137,6 +148,9 @@ a,
         box-shadow 0.35s ease,
         border-color 0.35s ease,
         background 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.game-card:hover {
     will-change: transform;
 }
 
@@ -832,6 +846,10 @@ p {
     align-items: center;
     justify-content: center;
     border-radius: 50%;
+    border: none;
+    background: transparent;
+    padding: 0;
+    line-height: 1;
 }
 
 .close:hover {
@@ -2820,6 +2838,23 @@ html {
     overflow: hidden;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+    font: inherit;
+    color: inherit;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+button.odds-card {
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.odds-card:focus-visible {
+    outline: 2px solid #f39c12;
+    outline-offset: 2px;
 }
 
 .odds-card::after {
@@ -4861,12 +4896,12 @@ body.light-theme .odds-card.selected .odds-card-value {
 /* --- 10. Feature-карточки на главной --- */
 body.light-theme .feature-card {
     background: rgba(255, 255, 255, 0.92) !important;
-    border: 1px solid rgba(66, 165, 245, 0.2) !important;
+    border: 2px solid rgba(25, 118, 210, 0.45) !important;
     box-shadow: 0 4px 16px rgba(66, 165, 245, 0.08) !important;
 }
 
 body.light-theme .feature-card:hover {
-    border-color: rgba(66, 165, 245, 0.5) !important;
+    border-color: rgba(25, 118, 210, 0.75) !important;
     box-shadow: 0 10px 30px rgba(66, 165, 245, 0.15) !important;
 }
 
@@ -5225,4 +5260,301 @@ body.light-theme .result-message.draw {
     -webkit-text-fill-color: #ff0000 !important;
     text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.9) !important;
     font-weight: 900 !important;
+}
+
+/* --- Доступность: fieldset, фокус --- */
+.a11y-fieldset {
+    border: 2px solid rgba(243, 156, 18, 0.45);
+    border-radius: 12px;
+    padding: 1rem 1.1rem 1.1rem;
+    margin: 0 0 1.25rem;
+    min-width: 0;
+}
+
+.a11y-fieldset legend {
+    padding: 0 0.5rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #f39c12;
+}
+
+.game-bet-fieldset {
+    border-color: rgba(233, 69, 96, 0.5);
+    background: rgba(0, 0, 0, 0.15);
+}
+
+.game-bet-fieldset legend {
+    color: #f39c12;
+}
+
+body.light-theme .a11y-fieldset {
+    border: 2px solid rgba(25, 118, 210, 0.4);
+    background: rgba(255, 255, 255, 0.5);
+}
+
+body.light-theme .game-bet-fieldset {
+    border-color: rgba(25, 118, 210, 0.55);
+    background: rgba(227, 242, 253, 0.35);
+}
+
+body.light-theme .a11y-fieldset legend,
+body.light-theme .game-bet-fieldset legend {
+    color: #1565c0;
+}
+
+/* Убираем серый квадрат подсветки на телефоне/планшете при тапе */
+.theme-toggle-btn,
+.nav-balance-reset,
+.close,
+.scroll-to-top-btn,
+.menu-toggle {
+    -webkit-tap-highlight-color: transparent;
+    tap-highlight-color: transparent;
+    outline: none;
+}
+
+.theme-toggle-btn:focus,
+.nav-balance-reset:focus,
+.close:focus,
+.theme-toggle-btn:active,
+.nav-balance-reset:active,
+.close:active {
+    outline: none;
+    box-shadow: none;
+}
+
+body.light-theme .theme-toggle-btn:focus,
+body.light-theme .theme-toggle-btn:active,
+body.light-theme .nav-balance-reset:focus,
+body.light-theme .nav-balance-reset:active,
+body.light-theme .close:focus,
+body.light-theme .close:active {
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+.betting-slider:focus-visible {
+    outline: 2px solid #f39c12;
+    outline-offset: 2px;
+}
+
+@media screen and (max-width: 480px) {
+    .a11y-fieldset {
+        padding: 0.85rem;
+    }
+
+    .a11y-fieldset legend {
+        font-size: 0.9rem;
+    }
+}
+
+/* --- Кнопка «Наверх» (все устройства) --- */
+.scroll-to-top-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 1500;
+    width: 3.25rem;
+    height: 3.25rem;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #e94560, #c0392b);
+    color: #fff;
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 4px 18px rgba(233, 69, 96, 0.45);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(14px);
+    transition: opacity 0.25s ease, visibility 0.25s ease, transform 0.25s ease, box-shadow 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.scroll-to-top-btn.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.scroll-to-top-btn:hover {
+    box-shadow: 0 6px 22px rgba(233, 69, 96, 0.55);
+    transform: translateY(-2px);
+}
+
+.scroll-to-top-btn.visible:hover {
+    transform: translateY(-2px);
+}
+
+.scroll-to-top-btn:active {
+    transform: translateY(0) scale(0.94);
+    box-shadow: 0 2px 10px rgba(233, 69, 96, 0.35);
+}
+
+body.light-theme .scroll-to-top-btn {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    box-shadow: 0 4px 16px rgba(231, 76, 60, 0.35);
+}
+
+/* ПК (≥1025px) */
+@media screen and (min-width: 1025px) {
+    .scroll-to-top-btn {
+        bottom: 2rem;
+        right: 2rem;
+        width: 3.5rem;
+        height: 3.5rem;
+        font-size: 1.5rem;
+    }
+}
+
+/* Ноутбук (769px – 1024px) */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+    .scroll-to-top-btn {
+        bottom: 1.75rem;
+        right: 1.75rem;
+        width: 3.25rem;
+        height: 3.25rem;
+    }
+}
+
+/* Планшет (481px – 768px) */
+@media screen and (min-width: 481px) and (max-width: 768px) {
+    .scroll-to-top-btn {
+        bottom: 1.35rem;
+        right: 1.35rem;
+        width: 3rem;
+        height: 3rem;
+        font-size: 1.3rem;
+    }
+}
+
+/* Телефон (≤480px) */
+@media screen and (max-width: 480px) {
+    .scroll-to-top-btn {
+        bottom: 1rem;
+        right: 1rem;
+        width: 2.75rem;
+        height: 2.75rem;
+        font-size: 1.2rem;
+        box-shadow: 0 3px 14px rgba(233, 69, 96, 0.4);
+    }
+}
+
+/* --- Поля сумм (ставки, депозит) — адаптив --- */
+.money-input,
+input.money-input.betting-amount-input {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+}
+
+#deposit-amount.money-input {
+    font-size: 1.5rem;
+    width: 100%;
+    max-width: 100%;
+}
+
+/* ПК */
+@media screen and (min-width: 1025px) {
+    .money-input.betting-amount-input,
+    #gameArea .money-input {
+        min-width: 120px;
+        font-size: 1.15rem;
+        padding: 8px 14px;
+    }
+
+    #deposit-amount.money-input {
+        font-size: 1.6rem;
+        padding: 12px 16px;
+    }
+}
+
+/* Ноутбук */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+    .money-input.betting-amount-input,
+    #gameArea .money-input {
+        min-width: 110px;
+        font-size: 1.1rem;
+    }
+
+    #deposit-amount.money-input {
+        font-size: 1.45rem;
+    }
+}
+
+/* Планшет */
+@media screen and (min-width: 481px) and (max-width: 768px) {
+    .money-input.betting-amount-input,
+    #gameArea .money-input {
+        width: 100%;
+        max-width: 100%;
+        font-size: 1.05rem;
+        padding: 8px 12px;
+    }
+
+    #deposit-amount.money-input {
+        font-size: 1.35rem;
+        padding: 10px 14px;
+    }
+
+    .betting-amount-container {
+        flex-wrap: wrap;
+    }
+}
+
+/* Телефон */
+@media screen and (max-width: 480px) {
+    .money-input.betting-amount-input,
+    #gameArea .money-input {
+        width: 100%;
+        max-width: 100%;
+        font-size: 1rem;
+        padding: 10px 12px;
+        min-height: 44px;
+    }
+
+    #deposit-amount.money-input {
+        font-size: 1.25rem;
+        padding: 12px;
+        min-height: 48px;
+    }
+
+    .betting-amount-container {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .betting-amount-container label {
+        text-align: left;
+    }
+}
+
+/* --- Производительность и плавность --- */
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+.modal:not(.active) {
+    content-visibility: hidden;
+    pointer-events: none;
+}
+
+.betting-slider {
+    touch-action: pan-y;
 }
