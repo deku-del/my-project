@@ -327,7 +327,101 @@ function initTheme() {
     }
     updateThemeToggleAriaLabel();
 }
-const THEME_TRANSITION_MS = 900;
+const THEME_TRANSITION_MS = 720;
+const MODAL_ANIM_MS = 320;
+
+const GAME_NICE_NAMES = {
+    roulette: 'Европейская рулетка',
+    slots: 'Слот-машина',
+    wheel: 'Колесо фортуны',
+    dice: 'Крэпс',
+    coin: 'Монетка',
+    blackjack: 'Блэкджек',
+    rps: 'Камень-ножницы-бумага',
+    betting: 'Футбольные ставки'
+};
+
+function updateBodyScrollLock() {
+    document.body.style.overflow = isAnyOverlayOpen() ? 'hidden' : '';
+}
+
+function openModal(modal) {
+    if (!modal) return;
+    const content = modal.querySelector('.modal-content');
+    modal.classList.remove('modal-is-closing');
+    if (content) {
+        content.classList.remove('modal-is-closing');
+        content.style.animation = '';
+    }
+    modal.classList.add('active');
+    updateBodyScrollLock();
+    requestAnimationFrame(() => {
+        modal.classList.add('modal-open');
+        if (content) content.classList.add('modal-content-open');
+    });
+}
+
+function closeModalImmediate(modal) {
+    if (!modal) return;
+    const content = modal.querySelector('.modal-content');
+    modal.classList.remove('active', 'modal-open', 'modal-is-closing');
+    if (content) content.classList.remove('modal-content-open', 'modal-is-closing');
+}
+
+function closeModal(modal, onDone) {
+    if (!modal?.classList.contains('active')) {
+        onDone?.();
+        return;
+    }
+    const content = modal.querySelector('.modal-content');
+    modal.classList.remove('modal-open');
+    if (content) content.classList.remove('modal-content-open');
+    modal.classList.add('modal-is-closing');
+    if (content) content.classList.add('modal-is-closing');
+
+    window.setTimeout(() => {
+        modal.classList.remove('active', 'modal-is-closing');
+        if (content) {
+            content.classList.remove('modal-is-closing');
+            content.style.animation = '';
+        }
+        updateBodyScrollLock();
+        onDone?.();
+    }, MODAL_ANIM_MS);
+}
+
+function revealResultElement(el, outcomeClass, message) {
+    if (!el) return;
+    el.className = `result-message ${outcomeClass} is-revealing`;
+    el.textContent = message;
+    el.style.display = 'block';
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => el.classList.remove('is-revealing'));
+    });
+}
+
+function buildSimulationResultMessage(gameType, profit, iterations, bet, wins, losses, draws) {
+    const gameName = GAME_NICE_NAMES[gameType] || gameType;
+    const statsLine = `Партий: ${iterations} | Побед: ${wins} | Поражений: ${losses} | Ничьих: ${draws}`;
+    const betLine = `Ставка: ${formatUsd(bet)}`;
+
+    if (profit > 0) {
+        return {
+            outcome: 'win',
+            text: `✅ ВЫИГРЫШ! (${formatUsdSigned(profit)}) | ${gameName} | ${statsLine} | ${betLine}`
+        };
+    }
+    if (profit < 0) {
+        return {
+            outcome: 'lose',
+            text: `❌ ПРОИГРЫШ! (${formatUsdSigned(profit)}) | ${gameName} | ${statsLine} | ${betLine}`
+        };
+    }
+    return {
+        outcome: 'draw',
+        text: `🤝 НИЧЬЯ! (${formatUsdSigned(0)}) | ${gameName} | ${statsLine} | ${betLine}`
+    };
+}
 
 function applyThemeState(isLight) {
     document.body.classList.toggle('light-theme', isLight);
@@ -337,26 +431,32 @@ function applyThemeState(isLight) {
     updateThemeToggleAriaLabel();
 }
 
-function endThemeTransition() {
-    window.setTimeout(() => {
-        document.body.classList.remove('is-theme-animating');
-    }, THEME_TRANSITION_MS);
-}
-
 function toggleTheme() {
     const willBeLight = !document.body.classList.contains('light-theme');
     document.body.classList.add('is-theme-animating');
 
+    const finishThemeAnim = () => {
+        requestAnimationFrame(() => {
+            window.setTimeout(() => {
+                document.body.classList.remove('is-theme-animating');
+            }, THEME_TRANSITION_MS);
+        });
+    };
+
     const run = () => applyThemeState(willBeLight);
 
     if (typeof document.startViewTransition === 'function') {
-        document.startViewTransition(run);
-        endThemeTransition();
+        const vt = document.startViewTransition(run);
+        if (vt?.finished) {
+            vt.finished.then(finishThemeAnim).catch(finishThemeAnim);
+        } else {
+            finishThemeAnim();
+        }
         return;
     }
 
     run();
-    endThemeTransition();
+    finishThemeAnim();
 }
 document.addEventListener('DOMContentLoaded', initTheme);
 
@@ -586,8 +686,7 @@ function openDepositModalUI() {
     updateGlobalBalance();
     initAllMoneyInputs(modal);
     initAccessibility(modal);
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
+    openModal(modal);
 }
 
 function openDepositModal() {
@@ -800,10 +899,38 @@ function closeNavMenuSilent() {
 function closeGameUI() {
     const modal = document.getElementById('gameModal');
     if (!modal || !modal.classList.contains('active')) return;
-    const modalContent = modal.querySelector('.modal-content');
-    if (modalContent) modalContent.style.animation = 'fadeOut 0.3s ease';
-    modal.classList.remove('active');
-    document.body.style.overflow = '';
+    closeModal(modal, () => {
+        if (currentGame === 'blackjack') {
+            bjGameActive = false;
+            bjPlayerHand = [];
+            bjDealerHand = [];
+            bjBet = 0;
+            bjDeck = [];
+        }
+    });
+}
+
+function closeGameDetailsUI() {
+    const modal = document.getElementById('detailsModal');
+    if (!modal) return;
+    closeModal(modal, () => {
+        currentDetailsGame = null;
+    });
+}
+
+function closeDepositModalUI() {
+    closeModal(document.getElementById('depositModal'));
+}
+
+function closeSimulationUI() {
+    closeModal(document.getElementById('simModal'));
+}
+
+function closeAllOverlaysSilent() {
+    closeModalImmediate(document.getElementById('simModal'));
+    closeModalImmediate(document.getElementById('depositModal'));
+    const gameModal = document.getElementById('gameModal');
+    closeModalImmediate(gameModal);
     if (currentGame === 'blackjack') {
         bjGameActive = false;
         bjPlayerHand = [];
@@ -811,36 +938,10 @@ function closeGameUI() {
         bjBet = 0;
         bjDeck = [];
     }
-}
-
-function closeGameDetailsUI() {
-    const modal = document.getElementById('detailsModal');
-    if (!modal) return;
-    modal.classList.remove('active');
-    document.body.style.overflow = '';
+    closeModalImmediate(document.getElementById('detailsModal'));
     currentDetailsGame = null;
-}
-
-function closeDepositModalUI() {
-    const modal = document.getElementById('depositModal');
-    if (!modal) return;
-    modal.classList.remove('active');
-    document.body.style.overflow = '';
-}
-
-function closeSimulationUI() {
-    const modal = document.getElementById('simModal');
-    if (!modal) return;
-    modal.classList.remove('active');
-    document.body.style.overflow = '';
-}
-
-function closeAllOverlaysSilent() {
-    closeSimulationUI();
-    closeDepositModalUI();
-    closeGameUI();
-    closeGameDetailsUI();
     closeNavMenuSilent();
+    updateBodyScrollLock();
 }
 
 function isMenuOpen() {
@@ -908,11 +1009,7 @@ function applyAppState(state) {
     } else if (state.overlay === 'deposit') {
         openDepositModalUI();
     } else if (state.overlay === 'sim') {
-        const simModal = document.getElementById('simModal');
-        if (simModal) {
-            simModal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
+        openModal(document.getElementById('simModal'));
     }
 
     if (state.section === 'betting') updateBettingOdds();
@@ -1532,16 +1629,7 @@ function openGameUI(game) {
     initAllMoneyInputs(gameArea);
     initAccessibility(gameArea);
 
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
-
-    // Анимация появления модального окна
-    setTimeout(() => {
-        const modalContent = modal.querySelector('.modal-content');
-        if (modalContent) {
-            modalContent.style.animation = 'modalSlideIn 0.4s ease';
-        }
-    }, 10);
+    openModal(modal);
 }
 
 function openGame(game) {
@@ -1673,8 +1761,7 @@ function openGameDetailsUI(gameId, activeTab) {
         </div>
     `;
 
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
+    openModal(modal);
     switchTab(tab, { skipHistory: true });
 }
 
@@ -1891,14 +1978,12 @@ function finishRoulette(color, bet) {
         balance += win;
         gameStats.totalWins += win;
         gameStats.winCount++;
-        resultDiv.className = 'result-message win';
-        resultDiv.textContent = `✅ ВЫИГРЫШ! (${formatUsdSigned(win - bet)}) Выпало: ${number}${actualText} | Ставка: ${chosenText}`;
+        revealResultElement(resultDiv, 'win', `✅ ВЫИГРЫШ! (${formatUsdSigned(win - bet)}) Выпало: ${number}${actualText} | Ставка: ${chosenText}`);
         playWinSound();
         recordBet('roulette', bet, 'win', win);
     } else {
         gameStats.loseCount++;
-        resultDiv.className = 'result-message lose';
-        resultDiv.textContent = `❌ ПРОИГРЫШ! (${formatUsdSigned(-bet)}) Выпало: ${number}${actualText} | Ставка: ${chosenText}`;
+        revealResultElement(resultDiv, 'lose', `❌ ПРОИГРЫШ! (${formatUsdSigned(-bet)}) Выпало: ${number}${actualText} | Ставка: ${chosenText}`);
         playLoseSound();
         recordBet('roulette', bet, 'lose', 0);
     }
@@ -2107,7 +2192,7 @@ function playSlots() {
                 resultDiv.className = 'result-message lose';
                 resultDiv.textContent = `❌ Не повезло (${formatUsdSigned(-bet)})`;
             }
-            if (slotDisplay) slotDisplay.style.animation = 'shake 0.5s ease';
+
             playLoseSound();
             recordBet('slots', bet, 'lose', 0);
         }
@@ -3161,7 +3246,7 @@ function finishRPS(playerMove, bet) {
         resultDiv.className = 'result-message lose';
         resultDiv.style.display = 'block';
         resultDiv.textContent = `❌ ПОРАЖЕНИЕ! (${formatUsdSigned(-bet)})`;
-        document.querySelector('.rps-display').style.animation = 'shake 0.5s ease';
+
         playLoseSound();
         recordBet('rps', bet, 'lose', 0);
     }
@@ -3462,9 +3547,12 @@ function showInlineNotif(type, message) {
     const notif = document.getElementById('betting-inline-notif');
     const icon = document.getElementById('betting-inline-icon');
     const text = document.getElementById('betting-inline-text');
+    if (!notif || !icon || !text) return;
 
+    if (notif.hideTimeout) clearTimeout(notif.hideTimeout);
+
+    notif.classList.remove('show', 'win', 'lose');
     notif.style.display = 'flex';
-    notif.className = 'betting-inline-notif show ' + type;
 
     if (type === 'win') {
         icon.textContent = '🎉';
@@ -3475,12 +3563,17 @@ function showInlineNotif(type, message) {
     }
 
     text.textContent = message;
+    notif.classList.add(type);
 
-    // Auto dismiss after 8 seconds
-    if (notif.hideTimeout) clearTimeout(notif.hideTimeout);
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => notif.classList.add('show'));
+    });
+
     notif.hideTimeout = setTimeout(() => {
         notif.classList.remove('show');
-        setTimeout(() => { if (!notif.classList.contains('show')) notif.style.display = 'none'; }, 500);
+        setTimeout(() => {
+            if (!notif.classList.contains('show')) notif.style.display = 'none';
+        }, 420);
     }, 8000);
 }
 
@@ -3576,12 +3669,7 @@ function runSimulation(gameType) {
     updateStats();
 
     // Записываем всю симуляцию как один пак в историю
-    const gameNiceNames = {
-        roulette: '🎡 Рулетка', slots: '🎰 Слоты', wheel: '🎪 Колесо',
-        dice: '🎲 Кости', coin: '🟡 Монетка', blackjack: '🃏 Блэкджек', rps: '✂️ КНБ',
-        betting: '⚽ Фут. Ставки'
-    };
-    const niceName = gameNiceNames[gameType] || gameType;
+    const niceName = GAME_NICE_NAMES[gameType] ? `🎮 ${GAME_NICE_NAMES[gameType]}` : gameType;
     betHistory.unshift({
         game: `${niceName} (Симуляция)`,
         iterations: iterations,
@@ -3602,7 +3690,7 @@ function runSimulation(gameType) {
         setGameBetButtonsDisabled(false);
     }
 
-    showSimulationResult(initialBalance, currentBalance, iterations, bet, historyData, wins, draws, losses);
+    showSimulationResult(initialBalance, currentBalance, iterations, bet, historyData, wins, draws, losses, gameType);
 }
 
 function fastPlayRoulette(bet) {
@@ -3655,12 +3743,12 @@ function fastPlayBetting(bet) {
     return 0;
 }
 
-function showSimulationResult(initialBalance, finalBalance, iterations, bet, historyData, wins, draws, losses) {
+function showSimulationResult(initialBalance, finalBalance, iterations, bet, historyData, wins, draws, losses, gameType) {
     const modal = document.getElementById('simModal');
     if (!modal) return;
 
     const profit = finalBalance - initialBalance;
-    const profitClass = profit >= 0 ? 'win' : 'lose';
+    const resultInfo = buildSimulationResultMessage(gameType, profit, iterations, bet, wins, losses, draws);
 
     const isLight = document.body.classList.contains('light-theme');
     const headerColor = isLight ? '#2c3e50' : '#ecf0f1';
@@ -3672,18 +3760,17 @@ function showSimulationResult(initialBalance, finalBalance, iterations, bet, his
         <p style="color: ${subColor}; font-size: 0.9rem; margin-bottom: 1rem;">
             <em>💡 График показывает изменение вашего баланса слева (ось Y) от каждой сыгранной партии снизу (ось X).</em>
         </p>
-        <div style="display: flex; justify-content: center; gap: 15px; margin-bottom: 10px; font-weight: bold; font-size: 1.1rem;">
-            <span style="color: #2ecc71;">✅ Побед: ${wins}</span>
-            <span style="color: #e74c3c;">❌ Поражений: ${losses}</span>
-            <span style="color: #f1c40f;">🤝 Ничьих: ${draws}</span>
-        </div>
-        <div class="result-message ${profitClass}" style="display: block; margin-bottom: 20px;">
-            ${profit >= 0 ? '✅ Общая прибыль' : '❌ Общий убыток'}: ${formatUsd(Math.abs(profit))}
+        <div class="result-message sim-result-summary ${resultInfo.outcome} is-revealing" style="display: block;">
+            ${resultInfo.text}
         </div>
     `;
 
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(() => {
+        const summary = document.querySelector('#simResultHeader .sim-result-summary');
+        if (summary) summary.classList.remove('is-revealing');
+    });
+
+    openModal(modal);
 
     // Даем браузеру 50мс на отрисовку модального окна (DOM paint) 
     // перед тем как Chart.js начнет вычислять размеры Canvas. 
