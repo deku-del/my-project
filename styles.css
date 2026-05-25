@@ -2501,8 +2501,10 @@ html {
 .bj-table {
     display: flex;
     justify-content: space-around;
+    align-items: flex-start;
+    gap: clamp(0.75rem, 3vw, 1.5rem);
     margin: 1.5rem 0;
-    padding: 2rem;
+    padding: clamp(1rem, 3vw, 2rem);
     background: rgba(0, 0, 0, 0.5);
     border-radius: 15px;
     border: 2px solid #27ae60;
@@ -2510,10 +2512,21 @@ html {
     overflow: hidden;
 }
 
+.bj-table > div[style*="width: 2px"] {
+    display: none;
+}
+
 .bj-hand-container {
     text-align: center;
     z-index: 2;
     width: 45%;
+    flex: 1 1 45%;
+    min-width: 0;
+}
+
+#player-sum,
+#dealer-sum {
+    font-size: clamp(1.1rem, 4vw, 1.35rem) !important;
 }
 
 .bj-cards-area {

@@ -2594,6 +2594,7 @@ function createBlackjackGame() {
         <h2>🃏 Блэкджек</h2>
         <div class="beautiful-formula">
             <div class="formula-title">📐 Условная вероятность P(A|B)</div>
+            <div class="formula-content">На картах: A, K, Q, J (мат. ранги 14, 13, 12, 11). В игре: туз 1/11, фигуры 10</div>
             <div class="formula-content">P(Блэкджек) = 2 × (4/52 × 16/51) &approx; <span style="color: #2ecc71;">4.83%</span></div>
             <div class="formula-content">Выплата за Блэкджек: <span style="color: #f1c40f;">3:2</span> | Обычная победа: <span style="color: #f1c40f;">1:1</span></div>
             <div class="formula-content">ПК (базовая стратегия) = <span style="color:#e74c3c;">0,5%</span></div>
@@ -2671,7 +2672,7 @@ function getCardRankNumber(card) {
     return parseInt(card.value, 10);
 }
 
-/** Очки для подсчёта руки в блэкджеке (туз = 11 с последующим смягчением) */
+/** Очки для игры в блэкджек (туз 11/1, валет/дама/король = 10) */
 function getCardValue(card) {
     if (['J', 'Q', 'K'].includes(card.value)) return 10;
     if (card.value === 'A') return 11;
@@ -2685,7 +2686,7 @@ const BJ_RANK_SHORT = {
 function calculateHand(hand) {
     let sum = 0;
     let aces = 0;
-    for (let card of hand) {
+    for (const card of hand) {
         sum += getCardValue(card);
         if (card.value === 'A') aces++;
     }
@@ -2694,6 +2695,11 @@ function calculateHand(hand) {
         aces--;
     }
     return sum;
+}
+
+/** Сумма математических рангов (2–14) — только для подсказки */
+function calculateHandRankSum(hand) {
+    return hand.reduce((s, card) => s + getCardRankNumber(card), 0);
 }
 
 function getCardDisplayRank(card) {
@@ -2708,7 +2714,7 @@ function renderCard(card, hidden = false) {
     const rankNum = getCardRankNumber(card);
     const rankHint = BJ_RANK_SHORT[card.value] || card.value;
     const isFace = ['A', 'K', 'Q', 'J'].includes(card.value);
-    return `<div class="card-item ${colorClass}${isFace ? ' card-item--face' : ''}" data-rank="${rankNum}" title="${rankHint}">
+    return `<div class="card-item ${colorClass}${isFace ? ' card-item--face' : ''}" data-rank="${rankNum}" title="${rankHint} (мат. ранг ${rankNum})">
         <span class="card-rank-num">${displayRank}</span>
         <span class="card-rank-suit">${card.suit}</span>
     </div>`;
@@ -2723,14 +2729,18 @@ function updateBJUI(hideDealer = true) {
     if (!pDiv) return;
 
     pDiv.innerHTML = bjPlayerHand.map(c => renderCard(c)).join('');
-    pSum.textContent = calculateHand(bjPlayerHand);
+    const pScore = calculateHand(bjPlayerHand);
+    pSum.textContent = pScore;
+    pSum.title = `Очки блэкджека: ${pScore}; мат. ранги (2–14): ${calculateHandRankSum(bjPlayerHand)}`;
 
     dDiv.innerHTML = bjDealerHand.map((c, i) => renderCard(c, i === 1 && hideDealer)).join('');
 
     if (hideDealer && bjDealerHand.length > 0) {
         dSum.textContent = '?';
     } else {
-        dSum.textContent = calculateHand(bjDealerHand);
+        const dScore = calculateHand(bjDealerHand);
+        dSum.textContent = dScore;
+        dSum.title = `Очки блэкджека: ${dScore}; мат. ранги (2–14): ${calculateHandRankSum(bjDealerHand)}`;
     }
 }
 
