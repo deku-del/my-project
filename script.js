@@ -342,7 +342,20 @@ const GAME_NICE_NAMES = {
 };
 
 function updateBodyScrollLock() {
-    document.body.style.overflow = isAnyOverlayOpen() ? 'hidden' : '';
+    const nav = document.querySelector('nav');
+    if (isAnyOverlayOpen()) {
+        if (document.body.style.overflow !== 'hidden') {
+            const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+            const pad = scrollbarWidth ? scrollbarWidth + 'px' : '';
+            document.body.style.paddingRight = pad;
+            if (nav) nav.style.paddingRight = pad;
+            document.body.style.overflow = 'hidden';
+        }
+    } else {
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+        if (nav) nav.style.paddingRight = '';
+    }
 }
 
 function openModal(modal) {
@@ -355,6 +368,8 @@ function openModal(modal) {
     }
     modal.classList.add('active');
     updateBodyScrollLock();
+    // Force reflow to ensure the transition applies smoothly on first open
+    void modal.offsetWidth;
     requestAnimationFrame(() => {
         modal.classList.add('modal-open');
         if (content) content.classList.add('modal-content-open');
@@ -390,6 +405,25 @@ function closeModal(modal, onDone) {
     }, MODAL_ANIM_MS);
 }
 
+/**
+ * Плавная прокрутка к результату игры внутри .modal-content
+ * Скроллит контейнер модального окна так, чтобы элемент был виден
+ * с запасом 80px снизу
+ */
+function smoothScrollToGameResult(el) {
+    if (!el) return;
+    setTimeout(() => {
+        const scrollContainer = el.closest('.modal-content');
+        if (!scrollContainer) return;
+        
+        // Скроллим в самый низ модального окна, как просил пользователь
+        scrollContainer.scrollTo({
+            top: scrollContainer.scrollHeight,
+            behavior: 'smooth'
+        });
+    }, 200);
+}
+
 function revealResultElement(el, outcomeClass, message) {
     if (!el) return;
     el.className = `result-message ${outcomeClass} is-revealing`;
@@ -398,6 +432,7 @@ function revealResultElement(el, outcomeClass, message) {
     requestAnimationFrame(() => {
         requestAnimationFrame(() => el.classList.remove('is-revealing'));
     });
+    smoothScrollToGameResult(el);
 }
 
 function buildSimulationResultMessage(gameType, profit, iterations, bet, wins, losses, draws) {
@@ -2196,6 +2231,7 @@ function playSlots() {
             playLoseSound();
             recordBet('slots', bet, 'lose', 0);
         }
+        smoothScrollToGameResult(resultDiv);
         updateStats();
         setGameBetButtonsDisabled(false);
     }
@@ -2373,6 +2409,7 @@ function finishWheel(bet, choice, symbols) {
         playLoseSound();
         recordBet('wheel', bet, 'lose', 0);
     }
+    smoothScrollToGameResult(resultDiv);
     const balanceDisplay = document.getElementById('balance-display');
     if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
     updateGlobalBalance();
@@ -2560,6 +2597,7 @@ function playDice(choice) {
             playLoseSound();
             recordBet('dice', bet, 'lose', 0);
         }
+        smoothScrollToGameResult(resultDiv);
 
         const balanceEl = document.getElementById('balance-display');
         if (balanceEl) balanceEl.textContent = formatMoney(balance);
@@ -2720,6 +2758,7 @@ function playCoin(choice) {
             recordBet('coin', bet, 'lose', 0);
         }
 
+        smoothScrollToGameResult(resultDiv);
         const balanceDisplay = document.getElementById('balance-display');
         if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
         updateGlobalBalance();
@@ -3016,6 +3055,8 @@ function endBlackjack(playerStood) {
         recordBet('blackjack', bjBet, 'lose', 0);
     }
 
+    smoothScrollToGameResult(resultDiv);
+
     const balanceDisplay = document.getElementById('balance-display');
     if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
     updateGlobalBalance();
@@ -3251,6 +3292,7 @@ function finishRPS(playerMove, bet) {
         recordBet('rps', bet, 'lose', 0);
     }
 
+    smoothScrollToGameResult(resultDiv);
 
     const balanceDisplay = document.getElementById('balance-display');
     if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
@@ -3434,6 +3476,18 @@ function placeBet(outcome) {
     document.getElementById('betting-sim-btn').disabled = false;
     const massSimBtn = document.getElementById('betting-mass-sim-btn');
     if (massSimBtn) massSimBtn.disabled = false;
+
+    // Auto-scroll to show the simulate buttons
+    setTimeout(() => {
+        const simBtn = document.getElementById('betting-mass-sim-btn') || document.getElementById('betting-sim-btn');
+        if (simBtn) {
+            const rect = simBtn.getBoundingClientRect();
+            const targetY = window.pageYOffset + rect.bottom - window.innerHeight + 60;
+            if (targetY > window.pageYOffset) {
+                window.scrollTo({ top: targetY, behavior: 'smooth' });
+            }
+        }
+    }, 150);
 }
 
 function validateBetAmount() {
@@ -3466,9 +3520,15 @@ function runBettingSimulation() {
     const xgHome = parseFloat(document.getElementById('xg-home').value);
     const xgAway = parseFloat(document.getElementById('xg-away').value);
 
-    // Hide previous result
+    // Hide previous result and notification
     const resultDiv = document.getElementById('betting-match-result');
     resultDiv.style.display = 'none';
+    
+    const notif = document.getElementById('betting-inline-notif');
+    if (notif) {
+        notif.classList.remove('show', 'win', 'lose');
+        setTimeout(() => { if (!notif.classList.contains('show')) notif.style.display = 'none'; }, 400);
+    }
 
     // Score animation
     const scoreHomeEl = document.getElementById('score-home');
@@ -3566,15 +3626,17 @@ function showInlineNotif(type, message) {
     notif.classList.add(type);
 
     requestAnimationFrame(() => {
-        requestAnimationFrame(() => notif.classList.add('show'));
+        requestAnimationFrame(() => {
+            notif.classList.add('show');
+            setTimeout(() => {
+                const rect = notif.getBoundingClientRect();
+                const targetY = window.pageYOffset + rect.bottom - window.innerHeight + 40;
+                if (targetY > window.pageYOffset) {
+                    window.scrollTo({ top: targetY, behavior: 'smooth' });
+                }
+            }, 150);
+        });
     });
-
-    notif.hideTimeout = setTimeout(() => {
-        notif.classList.remove('show');
-        setTimeout(() => {
-            if (!notif.classList.contains('show')) notif.style.display = 'none';
-        }, 420);
-    }, 8000);
 }
 
 // ===== СИМУЛЯЦИЯ ИГР И ОТРИСОВКА ГРАФИКА =====
@@ -3602,6 +3664,13 @@ function runSimulation(gameType) {
     if (bet < 1) {
         showAlert('Некорректная ставка!');
         return;
+    }
+
+    // Hide the football inline notification if it's currently showing
+    const inlineNotif = document.getElementById('betting-inline-notif');
+    if (inlineNotif) {
+        inlineNotif.classList.remove('show');
+        inlineNotif.style.display = 'none';
     }
 
     const itersInput = document.getElementById(gameType + '-sim-iters');
