@@ -327,13 +327,36 @@ function initTheme() {
     }
     updateThemeToggleAriaLabel();
 }
-function toggleTheme() {
-    document.body.classList.toggle('light-theme');
-    const isLight = document.body.classList.contains('light-theme');
+const THEME_TRANSITION_MS = 900;
+
+function applyThemeState(isLight) {
+    document.body.classList.toggle('light-theme', isLight);
     localStorage.setItem('theme', isLight ? 'light' : 'dark');
     const btn = document.getElementById('theme-toggle');
     if (btn) btn.textContent = isLight ? '🌙' : '☀️';
     updateThemeToggleAriaLabel();
+}
+
+function endThemeTransition() {
+    window.setTimeout(() => {
+        document.body.classList.remove('is-theme-animating');
+    }, THEME_TRANSITION_MS);
+}
+
+function toggleTheme() {
+    const willBeLight = !document.body.classList.contains('light-theme');
+    document.body.classList.add('is-theme-animating');
+
+    const run = () => applyThemeState(willBeLight);
+
+    if (typeof document.startViewTransition === 'function') {
+        document.startViewTransition(run);
+        endThemeTransition();
+        return;
+    }
+
+    run();
+    endThemeTransition();
 }
 document.addEventListener('DOMContentLoaded', initTheme);
 
@@ -388,10 +411,12 @@ function renderBetHistory() {
             ? `<span class="bh-counter bh-total-win">💰 Итог: ${formatUsdSigned(netProfit)}</span>`
             : `<span class="bh-counter bh-total-lose">🔻 Итог: ${formatUsdSigned(netProfit)}</span>`;
         counters.innerHTML = `
-            <span class="bh-counter bh-win">✅ ${gameStats.winCount}</span>
-            <span class="bh-counter bh-lose">❌ ${gameStats.loseCount}</span>
-            <span class="bh-counter bh-draw">🤝 ${gameStats.drawCount}</span>
-            ${totalHtml}
+            <div class="bh-counters-grid">
+                <span class="bh-counter bh-win">✅ ${gameStats.winCount}</span>
+                <span class="bh-counter bh-lose">❌ ${gameStats.loseCount}</span>
+                <span class="bh-counter bh-draw">🤝 ${gameStats.drawCount}</span>
+                ${totalHtml}
+            </div>
         `;
     }
 
@@ -555,23 +580,35 @@ function resetCasinoBalance() {
     openDepositModal();
 }
 
-function openDepositModal() {
+function openDepositModalUI() {
     const modal = document.getElementById('depositModal');
-    if (modal) {
-        updateGlobalBalance();
-        initAllMoneyInputs(modal);
-        initAccessibility(modal);
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
+    if (!modal) return;
+    updateGlobalBalance();
+    initAllMoneyInputs(modal);
+    initAccessibility(modal);
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function openDepositModal() {
+    openDepositModalUI();
+    if (!suppressHistoryPush) {
+        pushAppHistory(buildAppState({ overlay: 'deposit' }));
     }
 }
 
 function closeDepositModal() {
     const modal = document.getElementById('depositModal');
-    if (modal) {
-        modal.classList.remove('active');
-        document.body.style.overflow = '';
+    if (!modal || !modal.classList.contains('active')) return;
+    if (applyingHistoryPop) {
+        closeDepositModalUI();
+        return;
     }
+    if (appHistoryDepth > 0 && history.state?.overlay === 'deposit') {
+        history.back();
+        return;
+    }
+    closeDepositModalUI();
 }
 
 function submitDeposit() {
@@ -644,42 +681,290 @@ const NAV_SECTION_IDS = [
 const SECTION_STORAGE_KEY = 'activeSection';
 const HOME_TAB_STORAGE_KEY = 'activeHomeTab';
 
+let suppressHistoryPush = false;
+let applyingHistoryPop = false;
+let appHistoryDepth = 0;
+let currentDetailsGame = null;
+let closingDetailsOverlay = false;
+
 function saveActiveSection(sectionId) {
     if (!NAV_SECTION_IDS.includes(sectionId)) return;
     localStorage.setItem(SECTION_STORAGE_KEY, sectionId);
-    const hash = '#' + sectionId;
-    if (location.hash !== hash) {
-        history.replaceState(null, '', location.pathname + location.search + hash);
+}
+
+function getActiveSectionId() {
+    const active = document.querySelector('.section.active');
+    if (active && NAV_SECTION_IDS.includes(active.id)) return active.id;
+    return 'home';
+}
+
+function getActiveDetailsTabId() {
+    const tab = document.querySelector('#detailsModal .tab-content.active');
+    if (!tab || !tab.id) return 'rules';
+    return tab.id.replace('tab-', '');
+}
+
+function buildAppState(overrides = {}) {
+    const section = overrides.section ?? getActiveSectionId();
+    const state = {
+        section,
+        overlay: null,
+        game: null,
+        detailsTab: 'rules',
+        homeTab: null,
+        menuOpen: false
+    };
+    if (section === 'home') {
+        const stored = localStorage.getItem(HOME_TAB_STORAGE_KEY);
+        state.homeTab = stored === 'agreement' ? 'agreement' : 'main';
     }
+    return { ...state, ...overrides };
+}
+
+function stateToHash(state) {
+    if (state.overlay === 'sim') return '#__sim';
+    if (state.overlay === 'deposit') return '#__deposit';
+    if (state.overlay === 'game' && state.game) return `#__game/${state.game}`;
+    if (state.overlay === 'details' && state.game) {
+        return `#__details/${state.game}/${state.detailsTab || 'rules'}`;
+    }
+    if (state.section === 'home' && state.homeTab === 'agreement') return '#home/agreement';
+    return '#' + state.section;
+}
+
+function stateToUrl(state) {
+    return location.pathname + location.search + stateToHash(state);
+}
+
+function parseHashToState(hash) {
+    const h = (hash || location.hash).replace(/^#/, '');
+    if (!h) return buildAppState({ section: getSavedSectionId() });
+    if (h === '__sim') return buildAppState({ overlay: 'sim' });
+    if (h === '__deposit') return buildAppState({ overlay: 'deposit' });
+    const gameMatch = h.match(/^__game\/(.+)$/);
+    if (gameMatch) return buildAppState({ overlay: 'game', game: gameMatch[1] });
+    const detailsMatch = h.match(/^__details\/([^/]+)\/(.+)$/);
+    if (detailsMatch) {
+        return buildAppState({
+            overlay: 'details',
+            game: detailsMatch[1],
+            detailsTab: detailsMatch[2]
+        });
+    }
+    const homeTabMatch = h.match(/^home\/(main|agreement)$/);
+    if (homeTabMatch) return buildAppState({ section: 'home', homeTab: homeTabMatch[1] });
+    if (NAV_SECTION_IDS.includes(h)) return buildAppState({ section: h });
+    const stored = localStorage.getItem(SECTION_STORAGE_KEY);
+    if (NAV_SECTION_IDS.includes(stored)) return buildAppState({ section: stored });
+    return buildAppState({ section: 'home' });
+}
+
+function pushAppHistory(state) {
+    if (suppressHistoryPush) return;
+    history.pushState(state, '', stateToUrl(state));
+    appHistoryDepth++;
+}
+
+function replaceAppHistory(state) {
+    if (suppressHistoryPush) return;
+    history.replaceState(state, '', stateToUrl(state));
+}
+
+function recordSectionNavigation(sectionId, extra = {}) {
+    if (suppressHistoryPush) return;
+    pushAppHistory(buildAppState({
+        section: sectionId,
+        overlay: null,
+        game: null,
+        menuOpen: false,
+        ...extra
+    }));
 }
 
 function getSavedSectionId() {
     const fromHash = location.hash.replace('#', '');
     if (NAV_SECTION_IDS.includes(fromHash)) return fromHash;
+    if (fromHash.startsWith('home/')) return 'home';
     const stored = localStorage.getItem(SECTION_STORAGE_KEY);
     if (NAV_SECTION_IDS.includes(stored)) return stored;
     return 'home';
 }
 
+function closeNavMenuSilent() {
+    const navMenu = document.getElementById('navMenu');
+    const toggleBtn = document.querySelector('.menu-toggle');
+    if (navMenu) navMenu.classList.remove('active');
+    if (toggleBtn) toggleBtn.textContent = '☰ Меню';
+}
+
+function closeGameUI() {
+    const modal = document.getElementById('gameModal');
+    if (!modal || !modal.classList.contains('active')) return;
+    const modalContent = modal.querySelector('.modal-content');
+    if (modalContent) modalContent.style.animation = 'fadeOut 0.3s ease';
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+    if (currentGame === 'blackjack') {
+        bjGameActive = false;
+        bjPlayerHand = [];
+        bjDealerHand = [];
+        bjBet = 0;
+        bjDeck = [];
+    }
+}
+
+function closeGameDetailsUI() {
+    const modal = document.getElementById('detailsModal');
+    if (!modal) return;
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+    currentDetailsGame = null;
+}
+
+function closeDepositModalUI() {
+    const modal = document.getElementById('depositModal');
+    if (!modal) return;
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+function closeSimulationUI() {
+    const modal = document.getElementById('simModal');
+    if (!modal) return;
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+function closeAllOverlaysSilent() {
+    closeSimulationUI();
+    closeDepositModalUI();
+    closeGameUI();
+    closeGameDetailsUI();
+    closeNavMenuSilent();
+}
+
+function isMenuOpen() {
+    return document.getElementById('navMenu')?.classList.contains('active');
+}
+
+function isAnyOverlayOpen() {
+    return ['simModal', 'depositModal', 'gameModal', 'detailsModal'].some(
+        id => document.getElementById(id)?.classList.contains('active')
+    );
+}
+
+function closeTopOverlaySilent() {
+    if (document.getElementById('simModal')?.classList.contains('active')) {
+        closeSimulationUI();
+        return;
+    }
+    if (document.getElementById('depositModal')?.classList.contains('active')) {
+        closeDepositModalUI();
+        return;
+    }
+    if (document.getElementById('gameModal')?.classList.contains('active')) {
+        closeGameUI();
+        return;
+    }
+    if (document.getElementById('detailsModal')?.classList.contains('active')) {
+        closeGameDetailsUI();
+        return;
+    }
+    if (isMenuOpen()) closeNavMenuSilent();
+}
+
+function appHistoryBack() {
+    if (!isAnyOverlayOpen() && !isMenuOpen()) return;
+    if (document.getElementById('detailsModal')?.classList.contains('active')) {
+        closeGameDetails();
+        return;
+    }
+    if (appHistoryDepth > 0) {
+        history.back();
+        return;
+    }
+    closeTopOverlaySilent();
+}
+
+function applyAppState(state) {
+    suppressHistoryPush = true;
+    closeAllOverlaysSilent();
+
+    const homeTab = state.section === 'home' ? (state.homeTab || 'main') : null;
+    switchSection(state.section, null, { instant: true, skipScroll: true });
+    if (homeTab === 'main' || homeTab === 'agreement') switchHomeTab(homeTab);
+
+    if (state.menuOpen) {
+        const navMenu = document.getElementById('navMenu');
+        const toggleBtn = document.querySelector('.menu-toggle');
+        if (navMenu) navMenu.classList.add('active');
+        if (toggleBtn) toggleBtn.textContent = '✕ Закрыть';
+    }
+
+    if (state.overlay === 'game' && state.game) {
+        openGameUI(state.game);
+    } else if (state.overlay === 'details' && state.game) {
+        openGameDetailsUI(state.game, state.detailsTab || 'rules');
+    } else if (state.overlay === 'deposit') {
+        openDepositModalUI();
+    } else if (state.overlay === 'sim') {
+        const simModal = document.getElementById('simModal');
+        if (simModal) {
+            simModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    if (state.section === 'betting') updateBettingOdds();
+    suppressHistoryPush = false;
+}
+
+function initAppHistory() {
+    window.addEventListener('popstate', () => {
+        applyingHistoryPop = true;
+        appHistoryDepth = Math.max(0, appHistoryDepth - 1);
+        const state = history.state || parseHashToState(location.hash);
+
+        // Не листать вкладки «Правила → Описание → …», а закрыть всё окно «Подробно»
+        if (closingDetailsOverlay && state.overlay === 'details') {
+            if (appHistoryDepth > 0) {
+                history.back();
+                applyingHistoryPop = false;
+                return;
+            }
+            closingDetailsOverlay = false;
+            suppressHistoryPush = true;
+            closeGameDetailsUI();
+            replaceAppHistory(buildAppState({ section: getActiveSectionId() }));
+            suppressHistoryPush = false;
+            applyingHistoryPop = false;
+            return;
+        }
+        closingDetailsOverlay = false;
+
+        applyAppState(state);
+        applyingHistoryPop = false;
+    });
+}
+
 function restoreActiveSectionOnLoad() {
     const sectionId = getSavedSectionId();
+    const homeTab = sectionId === 'home' ? localStorage.getItem(HOME_TAB_STORAGE_KEY) : null;
+    suppressHistoryPush = true;
     document.querySelectorAll('.section').forEach(s => {
         s.classList.remove('active', 'section-exiting', 'section-entering');
         s.style.display = 'none';
     });
     switchSection(sectionId, null, { instant: true, skipScroll: true });
-    if (sectionId === 'home') {
-        const tab = localStorage.getItem(HOME_TAB_STORAGE_KEY);
-        if (tab === 'main' || tab === 'agreement') switchHomeTab(tab);
+    if (sectionId === 'home' && (homeTab === 'main' || homeTab === 'agreement')) {
+        switchHomeTab(homeTab);
     }
     if (sectionId === 'betting') updateBettingOdds();
-}
-
-function initAppNavigation() {
-    window.addEventListener('hashchange', () => {
-        const id = location.hash.replace('#', '');
-        if (NAV_SECTION_IDS.includes(id)) switchSection(id, null, { skipScroll: false });
-    });
+    suppressHistoryPush = false;
+    replaceAppHistory(buildAppState({
+        section: sectionId,
+        homeTab: homeTab === 'agreement' ? 'agreement' : 'main'
+    }));
 }
 
 const gameDetailsData = {
@@ -1106,6 +1391,7 @@ function switchSection(sectionId, clickedElement, options = {}) {
     const activeSection = document.querySelector('.section.active');
 
     const showTarget = () => {
+        if (!suppressHistoryPush) closeAllOverlaysSilent();
         sections.forEach(s => {
             s.classList.remove('active', 'section-exiting', 'section-entering', 'is-transitioning');
             if (s !== targetSection) s.style.display = 'none';
@@ -1113,6 +1399,7 @@ function switchSection(sectionId, clickedElement, options = {}) {
         targetSection.style.display = 'block';
         targetSection.classList.add('active');
         saveActiveSection(sectionId);
+        recordSectionNavigation(sectionId);
         if (sectionId === 'betting') requestAnimationFrame(() => updateBettingOdds());
     };
 
@@ -1160,16 +1447,25 @@ function switchHomeTab(tabId) {
     if (tabId === 'main' || tabId === 'agreement') {
         localStorage.setItem(HOME_TAB_STORAGE_KEY, tabId);
     }
+    if (!suppressHistoryPush && getActiveSectionId() === 'home') {
+        pushAppHistory(buildAppState({ section: 'home', homeTab: tabId, overlay: null }));
+    }
 }
 
 function toggleMenu() {
     const navMenu = document.getElementById('navMenu');
     const toggleBtn = document.querySelector('.menu-toggle');
-    if (navMenu) {
-        navMenu.classList.toggle('active');
-        if (toggleBtn) {
-            toggleBtn.textContent = navMenu.classList.contains('active') ? '✕ Закрыть' : '☰ Меню';
-        }
+    if (!navMenu) return;
+    const willOpen = !navMenu.classList.contains('active');
+    navMenu.classList.toggle('active');
+    if (toggleBtn) {
+        toggleBtn.textContent = navMenu.classList.contains('active') ? '✕ Закрыть' : '☰ Меню';
+    }
+    if (suppressHistoryPush || applyingHistoryPop) return;
+    if (willOpen) {
+        pushAppHistory(buildAppState({ menuOpen: true }));
+    } else if (appHistoryDepth > 0) {
+        history.back();
     }
 }
 
@@ -1200,7 +1496,7 @@ document.addEventListener('touchend', e => {
 }, { passive: true });
 
 // ===== ОТКРЫТИЕ ИГРЫ =====
-function openGame(game) {
+function openGameUI(game) {
     currentGame = game;
     const gameArea = document.getElementById('gameArea');
     const modal = document.getElementById('gameModal');
@@ -1246,47 +1542,44 @@ function openGame(game) {
     }, 10);
 }
 
+function openGame(game) {
+    openGameUI(game);
+    if (!suppressHistoryPush) {
+        pushAppHistory(buildAppState({ overlay: 'game', game }));
+    }
+}
+
 function closeGame() {
     const modal = document.getElementById('gameModal');
-    if (modal) {
-        const modalContent = modal.querySelector('.modal-content');
-        if (modalContent) {
-            modalContent.style.animation = 'fadeOut 0.3s ease';
-        }
-        setTimeout(() => {
-            modal.classList.remove('active');
-            document.body.style.overflow = '';
-
-            // Explicitly reset Blackjack state
-            if (currentGame === 'blackjack') {
-                bjGameActive = false;
-                bjPlayerHand = [];
-                bjDealerHand = [];
-                bjBet = 0;
-                bjDeck = [];
-                // Reset UI inside modal if needed, though openGame recreates it.
-            }
-        }, 300);
+    if (!modal || !modal.classList.contains('active')) return;
+    if (applyingHistoryPop) {
+        closeGameUI();
+        return;
     }
+    if (appHistoryDepth > 0 && history.state?.overlay === 'game') {
+        history.back();
+        return;
+    }
+    closeGameUI();
 }
 
 // Закрытие по клику вне модального окна
 window.addEventListener('click', (e) => {
-    const modal = document.getElementById('gameModal');
+    const gameModal = document.getElementById('gameModal');
     const detailsModal = document.getElementById('detailsModal');
-    if (e.target === modal) {
-        closeGame();
-    }
-    if (e.target === detailsModal) {
-        closeGameDetails();
-    }
+    const depositModal = document.getElementById('depositModal');
+    const simModal = document.getElementById('simModal');
+    if (e.target === gameModal) closeGame();
+    if (e.target === detailsModal) closeGameDetails();
+    if (e.target === depositModal) closeDepositModal();
+    if (e.target === simModal) closeSimulationDetails();
 });
 
-// Закрытие по Escape
+// Закрытие по Escape (модалки, меню — через историю «Назад»)
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-        closeGame();
-        closeGameDetails();
+    if (e.key === 'Escape' && (isAnyOverlayOpen() || isMenuOpen())) {
+        e.preventDefault();
+        appHistoryBack();
     }
 });
 
@@ -1330,7 +1623,7 @@ function showToast(message) {
 }
 
 // ===== ДЕТАЛИ ИГРЫ =====
-function openGameDetails(gameId) {
+function openGameDetailsUI(gameId, activeTab) {
     const data = gameDetailsData[gameId];
     if (!data) return;
 
@@ -1339,17 +1632,20 @@ function openGameDetails(gameId) {
 
     if (!detailsArea || !modal) return;
 
+    currentDetailsGame = gameId;
+    const tab = activeTab || 'rules';
+
     detailsArea.innerHTML = `
         <h2>${data.title}</h2>
         <div class="tabs-header">
-            <button class="tab-btn active" onclick="switchTab('rules')">📜 Правила</button>
+            <button class="tab-btn" onclick="switchTab('rules')">📜 Правила</button>
             <button class="tab-btn" onclick="switchTab('description')">ℹ️ Описание</button>
             <button class="tab-btn" onclick="switchTab('howitworks')">⚙️ Как это работает</button>
             <button class="tab-btn" onclick="switchTab('theory')">📊 Теория</button>
             <button class="tab-btn" onclick="switchTab('history')">🕰️ История</button>
         </div>
 
-        <div id="tab-rules" class="tab-content active details-block">
+        <div id="tab-rules" class="tab-content details-block">
             <h4>Правила игры:</h4>
             ${data.rules}
         </div>
@@ -1377,31 +1673,52 @@ function openGameDetails(gameId) {
 
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
+    switchTab(tab, { skipHistory: true });
+}
+
+function openGameDetails(gameId) {
+    openGameDetailsUI(gameId, 'rules');
+    if (!suppressHistoryPush) {
+        pushAppHistory(buildAppState({ overlay: 'details', game: gameId, detailsTab: 'rules' }));
+    }
 }
 
 function closeGameDetails() {
     const modal = document.getElementById('detailsModal');
-    if (modal) {
-        modal.classList.remove('active');
-        document.body.style.overflow = '';
+    if (!modal || !modal.classList.contains('active')) return;
+    if (applyingHistoryPop) {
+        closeGameDetailsUI();
+        return;
     }
+    if (appHistoryDepth > 0 || history.state?.overlay === 'details') {
+        closingDetailsOverlay = true;
+        history.back();
+        return;
+    }
+    closeGameDetailsUI();
 }
 
-function switchTab(tabId) {
-    // Скрываем все табы
+function switchTab(tabId, options = {}) {
+    const tabEl = document.getElementById(`tab-${tabId}`);
+    if (!tabEl) return;
+
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-    // Убираем активность с кнопок
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
 
-    // Показываем нужный таб
-    document.getElementById(`tab-${tabId}`).classList.add('active');
-    // Активируем кнопку (находим по onclick)
+    tabEl.classList.add('active');
     const buttons = document.querySelectorAll('.tab-btn');
     buttons.forEach(btn => {
-        if (btn.getAttribute('onclick').includes(tabId)) {
-            btn.classList.add('active');
-        }
+        const onclick = btn.getAttribute('onclick') || '';
+        if (onclick.includes(tabId)) btn.classList.add('active');
     });
+
+    if (!options.skipHistory && !suppressHistoryPush && !applyingHistoryPop && currentDetailsGame) {
+        replaceAppHistory(buildAppState({
+            overlay: 'details',
+            game: currentDetailsGame,
+            detailsTab: tabId
+        }));
+    }
 }
 
 
@@ -1620,11 +1937,11 @@ function createSlotsGame() {
             </div>
         </fieldset>
 
-        <div id="slot-display" class="game-display">
-            <div>
-                <span id="reel1" class="game-anim-text" style="padding:0 5px;">❓</span> 
-                <span id="reel2" class="game-anim-text" style="padding:0 5px;">❓</span> 
-                <span id="reel3" class="game-anim-text" style="padding:0 5px;">❓</span>
+        <div id="slot-display" class="game-display slot-machine">
+            <div class="slot-reels" aria-live="polite">
+                <span id="reel1" class="slot-reel game-anim-text">❓</span>
+                <span id="reel2" class="slot-reel game-anim-text">❓</span>
+                <span id="reel3" class="slot-reel game-anim-text">❓</span>
             </div>
         </div>
 
@@ -1639,6 +1956,10 @@ function createSlotsGame() {
         <div id="slot-stats" class="statistics"></div>
     `;
 }
+
+let slotsSpinGeneration = 0;
+
+const SLOT_SYMBOLS = ['🍒', '🍓', '🍇', '🎁', '⭐', '💎', '👑'];
 
 function playSlots() {
     const betInput = document.getElementById('slot-bet');
@@ -1661,7 +1982,6 @@ function playSlots() {
     const balanceDisplay = document.getElementById('balance-display');
     if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
 
-    // Reset result message to spinning state
     const resultDiv = document.getElementById('slot-result');
     if (resultDiv) {
         resultDiv.className = '';
@@ -1670,82 +1990,113 @@ function playSlots() {
     }
 
     const slotDisplay = document.getElementById('slot-display');
-    if (slotDisplay) slotDisplay.style.animation = 'none';
+    const reelIds = ['reel1', 'reel2', 'reel3'];
+    const reels = reelIds.map(id => document.getElementById(id)).filter(Boolean);
+    if (!reels.length) return;
 
-    // Анимация вращения
-    const reels = ['reel1', 'reel2', 'reel3'];
-    const symbols = ['🍒', '🍓', '🍇', '🎁', '⭐', '💎', '👑'];
+    const won = Math.random() < (7 / 343);
+    let finalReels = [];
+    if (won) {
+        const sym = SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)];
+        finalReels = [sym, sym, sym];
+    } else {
+        do {
+            finalReels = [
+                SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)],
+                SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)],
+                SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)]
+            ];
+        } while (finalReels[0] === finalReels[1] && finalReels[1] === finalReels[2]);
+    }
 
-    reels.forEach((reelId, index) => {
-        const reel = document.getElementById(reelId);
-        if (reel) {
-            reel.style.animation = 'spin 0.3s ease';
-            let spins = 0;
-            const spinInterval = setInterval(() => {
-                reel.textContent = symbols[Math.floor(Math.random() * symbols.length)];
-                spins++;
-                if (spins > 10) {
-                    clearInterval(spinInterval);
-                    reel.style.animation = '';
-                }
-            }, 50);
-        }
+    const spinGen = ++slotsSpinGeneration;
+    const start = performance.now();
+    const reelSpinMs = 480;
+    const reelGapMs = 280;
+    const reelStopAt = [
+        reelSpinMs,
+        reelSpinMs + reelGapMs,
+        reelSpinMs + reelGapMs * 2
+    ];
+    const symbolTickMs = 160;
+
+    reels.forEach(r => {
+        r.classList.add('is-spinning');
+        r.style.animation = '';
+        delete r.dataset.stopped;
+        r._lastSymTick = 0;
     });
 
-    setTimeout(() => {
-        // Чистая вероятность (7/343)
-        const won = Math.random() < (7 / 343);
-        let finalReels = [];
-        if (won) {
-            const sym = symbols[Math.floor(Math.random() * symbols.length)];
-            finalReels = [sym, sym, sym];
-        } else {
-            do {
-                finalReels = [
-                    symbols[Math.floor(Math.random() * symbols.length)],
-                    symbols[Math.floor(Math.random() * symbols.length)],
-                    symbols[Math.floor(Math.random() * symbols.length)]
-                ];
-            } while (finalReels[0] === finalReels[1] && finalReels[1] === finalReels[2]);
-        }
+    function finishSlotsSpin() {
+        if (spinGen !== slotsSpinGeneration) return;
 
-        document.getElementById('reel1').textContent = finalReels[0];
-        document.getElementById('reel2').textContent = finalReels[1];
-        document.getElementById('reel3').textContent = finalReels[2];
-        const balanceDisplay = document.getElementById('balance-display');
-        if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
+        const balanceEl = document.getElementById('balance-display');
+        if (balanceEl) balanceEl.textContent = formatMoney(balance);
         updateGlobalBalance();
 
-        const resultDiv = document.getElementById('slot-result');
-        const slotDisplay = document.getElementById('slot-display');
+        if (slotDisplay) slotDisplay.style.animation = 'none';
+        void slotDisplay?.offsetWidth;
 
-        // Clear previous animations to allow reflow
-        slotDisplay.style.animation = 'none';
-
-        // Force reflow
-        void slotDisplay.offsetWidth;
-
-        if (finalReels[0] === finalReels[1] && finalReels[1] === finalReels[2]) {
+        const isJackpot = finalReels[0] === finalReels[1] && finalReels[1] === finalReels[2];
+        if (isJackpot) {
             const win = bet * 10;
             balance += win;
             gameStats.totalWins += win;
             gameStats.winCount++;
-            resultDiv.className = 'result-message win';
-            resultDiv.textContent = `✅ ДЖЕКПОТ! (${formatUsdSigned(win)})`;
+            if (resultDiv) {
+                resultDiv.className = 'result-message win';
+                resultDiv.textContent = `✅ ДЖЕКПОТ! (${formatUsdSigned(win)})`;
+            }
             playWinSound();
-            slotDisplay.style.animation = 'winPulse 0.6s ease';
+            if (slotDisplay) slotDisplay.style.animation = 'winPulse 0.6s ease';
             recordBet('slots', bet, 'win', win);
         } else {
             gameStats.loseCount++;
-            resultDiv.className = 'result-message lose';
-            resultDiv.textContent = `❌ Не повезло (${formatUsdSigned(-bet)})`;
-            slotDisplay.style.animation = 'shake 0.5s ease';
+            if (resultDiv) {
+                resultDiv.className = 'result-message lose';
+                resultDiv.textContent = `❌ Не повезло (${formatUsdSigned(-bet)})`;
+            }
+            if (slotDisplay) slotDisplay.style.animation = 'shake 0.5s ease';
             playLoseSound();
             recordBet('slots', bet, 'lose', 0);
         }
-
         updateStats();
-    }, 1000);
+    }
+
+    function animateFrame(now) {
+        if (spinGen !== slotsSpinGeneration) return;
+
+        const elapsed = now - start;
+        let pending = false;
+
+        reels.forEach((reel, index) => {
+            if (reel.dataset.stopped) return;
+
+            const stopAt = reelStopAt[index];
+            if (elapsed < stopAt) {
+                pending = true;
+                if (!reel._lastSymTick || now - reel._lastSymTick >= symbolTickMs) {
+                    reel.textContent = SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)];
+                    reel._lastSymTick = now;
+                }
+                const wobble = Math.sin(elapsed * 0.006 + index) * 2;
+                reel.style.transform = `translate3d(0, ${wobble}px, 0)`;
+            } else {
+                reel.textContent = finalReels[index];
+                reel.style.transform = 'translate3d(0, 0, 0) scale(1)';
+                reel.classList.remove('is-spinning');
+                reel.dataset.stopped = '1';
+            }
+        });
+
+        if (pending) {
+            requestAnimationFrame(animateFrame);
+        } else {
+            requestAnimationFrame(finishSlotsSpin);
+        }
+    }
+
+    requestAnimationFrame(animateFrame);
 }
 
 // ===== КОЛЕСО (Добавлен Клевер) =====
@@ -1925,8 +2276,8 @@ function createDiceGame() {
         </fieldset>
 
         <div class="dice-container">
-            <div id="dice1" class="dice-val">🎲</div> 
-            <div id="dice2" class="dice-val">🎲</div>
+            <div id="dice1" class="dice-val" data-value="6" aria-label="Кость 1">${buildDiceFaceHTML(6)}</div>
+            <div id="dice2" class="dice-val" data-value="6" aria-label="Кость 2">${buildDiceFaceHTML(6)}</div>
         </div>
 
         <div style="margin-top: 1rem;">
@@ -1939,6 +2290,33 @@ function createDiceGame() {
         </div>
         <div id="dice-stats" class="statistics"></div>
     `;
+}
+
+let diceRollGeneration = 0;
+
+const DICE_PIP_CELLS = {
+    1: [4],
+    2: [0, 8],
+    3: [0, 4, 8],
+    4: [0, 2, 6, 8],
+    5: [0, 2, 4, 6, 8],
+    6: [0, 2, 3, 5, 6, 8]
+};
+
+function buildDiceFaceHTML(value) {
+    const on = DICE_PIP_CELLS[value] || DICE_PIP_CELLS[1];
+    let html = '';
+    for (let i = 0; i < 9; i++) {
+        html += `<span class="dice-pip${on.includes(i) ? ' dice-pip--on' : ''}"></span>`;
+    }
+    return html;
+}
+
+function setDiceFace(el, value) {
+    if (!el) return;
+    const v = Math.max(1, Math.min(6, value));
+    el.dataset.value = String(v);
+    el.innerHTML = buildDiceFaceHTML(v);
 }
 
 function playDice(choice) {
@@ -1964,21 +2342,21 @@ function playDice(choice) {
 
     const dice1 = document.getElementById('dice1');
     const dice2 = document.getElementById('dice2');
+    if (!dice1 || !dice2) return;
 
-    // Чистые вероятности для костей
-    let won = false;
-    if (choice === 'under') { won = Math.random() < 15 / 36; }
-    else if (choice === 'over') { won = Math.random() < 15 / 36; }
-    else if (choice === 'seven') { won = Math.random() < 6 / 36; }
+    let outcomeWon = false;
+    if (choice === 'under') outcomeWon = Math.random() < 15 / 36;
+    else if (choice === 'over') outcomeWon = Math.random() < 15 / 36;
+    else if (choice === 'seven') outcomeWon = Math.random() < 6 / 36;
 
     let finalSum = 0;
-    if (won) {
-        if (choice === 'under') finalSum = Math.floor(Math.random() * 5) + 2; // 2..6
-        if (choice === 'over') finalSum = Math.floor(Math.random() * 5) + 8; // 8..12
+    if (outcomeWon) {
+        if (choice === 'under') finalSum = Math.floor(Math.random() * 5) + 2;
+        if (choice === 'over') finalSum = Math.floor(Math.random() * 5) + 8;
         if (choice === 'seven') finalSum = 7;
     } else {
-        if (choice === 'under') finalSum = Math.random() < 6 / 21 ? 7 : Math.floor(Math.random() * 5) + 8; // 7 or over
-        if (choice === 'over') finalSum = Math.random() < 6 / 21 ? 7 : Math.floor(Math.random() * 5) + 2; // 7 or under
+        if (choice === 'under') finalSum = Math.random() < 6 / 21 ? 7 : Math.floor(Math.random() * 5) + 8;
+        if (choice === 'over') finalSum = Math.random() < 6 / 21 ? 7 : Math.floor(Math.random() * 5) + 2;
         if (choice === 'seven') {
             do { finalSum = Math.floor(Math.random() * 11) + 2; } while (finalSum === 7);
         }
@@ -1994,48 +2372,28 @@ function playDice(choice) {
     const finalD1 = split[0];
     const finalD2 = split[1];
 
-    let rolls = 0;
-    const maxRolls = 15;
-    let animationStopped = false;
+    const rollGen = ++diceRollGeneration;
+    const start = performance.now();
+    const rollDuration = 1100;
 
-    // Animation loop
-    function rollDiceAnim() {
-        if (animationStopped || rolls >= maxRolls) return;
+    dice1.classList.add('is-rolling');
+    dice2.classList.add('is-rolling');
+    dice1.style.transition = 'transform 0.15s ease-out';
+    dice2.style.transition = 'transform 0.15s ease-out';
 
-        const val1 = Math.floor(Math.random() * 6) + 1;
-        const val2 = Math.floor(Math.random() * 6) + 1;
+    function finishDiceRoll() {
+        if (rollGen !== diceRollGeneration) return;
 
-        dice1.textContent = val1;
-        dice2.textContent = val2;
-
-        dice1.style.transform = `rotate(${Math.random() * 360}deg) scale(1.1)`;
-        dice2.style.transform = `rotate(${Math.random() * 360}deg) scale(1.1)`;
-
-        rolls++;
-        if (rolls < maxRolls) {
-            requestAnimationFrame(() => setTimeout(rollDiceAnim, 60));
-        }
-    }
-    rollDiceAnim();
-
-    setTimeout(() => {
-        // Stop animation
-        animationStopped = true;
-
-        // Set FINAL values
-        dice1.textContent = finalD1;
-        dice2.textContent = finalD2;
-
-        // Reset transformation
-        dice1.style.transform = 'rotate(0deg) scale(1)';
-        dice2.style.transform = 'rotate(0deg) scale(1)';
-        dice1.style.transition = 'all 0.3s ease';
-        dice2.style.transition = 'all 0.3s ease';
+        setDiceFace(dice1, finalD1);
+        setDiceFace(dice2, finalD2);
+        dice1.style.transform = 'translate3d(0, 0, 0) rotate(0deg) scale(1)';
+        dice2.style.transform = 'translate3d(0, 0, 0) rotate(0deg) scale(1)';
+        dice1.classList.remove('is-rolling');
+        dice2.classList.remove('is-rolling');
 
         const resultDiv = document.getElementById('dice-result');
-
-        let won = false;
         let payout = 0;
+        let won = false;
 
         if (choice === 'under' && finalSum < 7) { won = true; payout = 2.4; }
         if (choice === 'over' && finalSum > 7) { won = true; payout = 2.4; }
@@ -2046,23 +2404,51 @@ function playDice(choice) {
             balance += win;
             gameStats.totalWins += win;
             gameStats.winCount++;
-            resultDiv.className = 'result-message win';
-            resultDiv.textContent = `✅ ВЫИГРЫШ! Сумма: ${finalSum} (${formatUsdSigned(win)})`;
+            if (resultDiv) {
+                resultDiv.className = 'result-message win';
+                resultDiv.textContent = `✅ ВЫИГРЫШ! Сумма: ${finalSum} (${formatUsdSigned(win)})`;
+            }
             playWinSound();
             recordBet('dice', bet, 'win', win);
         } else {
             gameStats.loseCount++;
-            resultDiv.className = 'result-message lose';
-            resultDiv.textContent = `❌ ПРОИГРЫШ! Сумма: ${finalSum} (${formatUsdSigned(-bet)})`;
+            if (resultDiv) {
+                resultDiv.className = 'result-message lose';
+                resultDiv.textContent = `❌ ПРОИГРЫШ! Сумма: ${finalSum} (${formatUsdSigned(-bet)})`;
+            }
             playLoseSound();
             recordBet('dice', bet, 'lose', 0);
         }
 
-        const balanceDisplay = document.getElementById('balance-display');
-        if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
+        const balanceEl = document.getElementById('balance-display');
+        if (balanceEl) balanceEl.textContent = formatMoney(balance);
         updateGlobalBalance();
         updateStats();
-    }, 1050);
+    }
+
+    function animateDice(now) {
+        if (rollGen !== diceRollGeneration) return;
+
+        const elapsed = now - start;
+        if (elapsed < rollDuration) {
+            if (!dice1._lastFaceTick || now - dice1._lastFaceTick > 120) {
+                setDiceFace(dice1, Math.floor(Math.random() * 6) + 1);
+                setDiceFace(dice2, Math.floor(Math.random() * 6) + 1);
+                dice1._lastFaceTick = now;
+            }
+
+            const t = elapsed * 0.01;
+            const lift = Math.sin(elapsed * 0.018) * 4;
+            dice1.style.transform = `translate3d(${Math.sin(t) * 3}px, ${lift}px, 0) rotate(${elapsed * 0.2}deg)`;
+            dice2.style.transform = `translate3d(${Math.cos(t) * 3}px, ${lift}px, 0) rotate(${-elapsed * 0.22}deg)`;
+
+            requestAnimationFrame(animateDice);
+        } else {
+            requestAnimationFrame(finishDiceRoll);
+        }
+    }
+
+    requestAnimationFrame(animateDice);
 }
 
 // ===== МОНЕТКА =====
@@ -2278,11 +2664,23 @@ function createDeck() {
     return deck.sort(() => Math.random() - 0.5);
 }
 
+/** Математический ранг карты в колоде (2–14, туз = 14) */
+function getCardRankNumber(card) {
+    const ranks = { A: 14, K: 13, Q: 12, J: 11 };
+    if (ranks[card.value] !== undefined) return ranks[card.value];
+    return parseInt(card.value, 10);
+}
+
+/** Очки для подсчёта руки в блэкджеке (туз = 11 с последующим смягчением) */
 function getCardValue(card) {
     if (['J', 'Q', 'K'].includes(card.value)) return 10;
     if (card.value === 'A') return 11;
-    return parseInt(card.value);
+    return parseInt(card.value, 10);
 }
+
+const BJ_RANK_SHORT = {
+    A: 'Туз', K: 'Король', Q: 'Дама', J: 'Валет'
+};
 
 function calculateHand(hand) {
     let sum = 0;
@@ -2298,11 +2696,22 @@ function calculateHand(hand) {
     return sum;
 }
 
+function getCardDisplayRank(card) {
+    return card.value;
+}
+
 function renderCard(card, hidden = false) {
     if (hidden) return `<div class="card-item back"></div>`;
 
     const colorClass = (card.suit === '♥' || card.suit === '♦') ? 'red' : 'black';
-    return `<div class="card-item ${colorClass}">${card.value}${card.suit}</div>`;
+    const displayRank = getCardDisplayRank(card);
+    const rankNum = getCardRankNumber(card);
+    const rankHint = BJ_RANK_SHORT[card.value] || card.value;
+    const isFace = ['A', 'K', 'Q', 'J'].includes(card.value);
+    return `<div class="card-item ${colorClass}${isFace ? ' card-item--face' : ''}" data-rank="${rankNum}" title="${rankHint}">
+        <span class="card-rank-num">${displayRank}</span>
+        <span class="card-rank-suit">${card.suit}</span>
+    </div>`;
 }
 
 function updateBJUI(hideDealer = true) {
@@ -2825,7 +3234,7 @@ function initApp() {
     initScrollToTop();
     initAllMoneyInputs();
     initAccessibility();
-    initAppNavigation();
+    initAppHistory();
     restoreActiveSectionOnLoad();
 }
 
@@ -3187,6 +3596,10 @@ function showSimulationResult(initialBalance, finalBalance, iterations, bet, his
     setTimeout(() => {
         createChart(historyData, initialBalance, finalBalance, profit >= 0);
     }, 50);
+
+    if (!suppressHistoryPush) {
+        pushAppHistory(buildAppState({ overlay: 'sim' }));
+    }
 }
 
 function createChart(historyData, initialBalance, finalBalance, isProfit) {
@@ -3270,10 +3683,16 @@ function createChart(historyData, initialBalance, finalBalance, isProfit) {
 
 function closeSimulationDetails() {
     const modal = document.getElementById('simModal');
-    if (modal) {
-        modal.classList.remove('active');
-        document.body.style.overflow = '';
+    if (!modal || !modal.classList.contains('active')) return;
+    if (applyingHistoryPop) {
+        closeSimulationUI();
+        return;
     }
+    if (appHistoryDepth > 0 && history.state?.overlay === 'sim') {
+        history.back();
+        return;
+    }
+    closeSimulationUI();
 }
 
 

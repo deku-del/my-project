@@ -11,6 +11,7 @@ nav,
 .content-block,
 .probability-info,
 .bet-history-panel,
+.bh-counter,
 .calc-loss-side,
 .calc-item,
 .calc-dynamic-section,
@@ -51,6 +52,48 @@ a,
 .bh-game,
 .bh-balance {
     transition: color 0.4s ease, -webkit-text-fill-color 0.4s ease;
+}
+
+/* Очень плавная смена темы */
+body.is-theme-animating::before,
+body.is-theme-animating::after {
+    transition: opacity 0.9s cubic-bezier(0.45, 0.05, 0.2, 1) !important;
+}
+
+body.is-theme-animating,
+body.is-theme-animating header,
+body.is-theme-animating nav,
+body.is-theme-animating .game-card,
+body.is-theme-animating .modal-content,
+body.is-theme-animating .content-block,
+body.is-theme-animating .bet-history-panel,
+body.is-theme-animating .nav-menu,
+body.is-theme-animating .nav-btn,
+body.is-theme-animating .nav-dropbtn,
+body.is-theme-animating .nav-dropdown-content {
+    transition:
+        background-color 0.85s cubic-bezier(0.45, 0.05, 0.2, 1),
+        color 0.75s cubic-bezier(0.45, 0.05, 0.2, 1),
+        border-color 0.75s cubic-bezier(0.45, 0.05, 0.2, 1),
+        box-shadow 0.75s cubic-bezier(0.45, 0.05, 0.2, 1) !important;
+}
+
+body.is-theme-animating h1,
+body.is-theme-animating h2,
+body.is-theme-animating h3,
+body.is-theme-animating p,
+body.is-theme-animating span,
+body.is-theme-animating .nav-btn,
+body.is-theme-animating .nav-dropbtn,
+body.is-theme-animating .bh-item {
+    transition: color 0.75s cubic-bezier(0.45, 0.05, 0.2, 1),
+        -webkit-text-fill-color 0.75s cubic-bezier(0.45, 0.05, 0.2, 1) !important;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation-duration: 0.75s;
+    animation-timing-function: cubic-bezier(0.45, 0.05, 0.2, 1);
 }
 
 /* Секции — плавное появление/скрытие (fade + slide) */
@@ -215,7 +258,7 @@ body::after {
     width: 100vw;
     height: 100vh;
     z-index: -1;
-    transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.85s cubic-bezier(0.45, 0.05, 0.2, 1);
     pointer-events: none;
 }
 
@@ -483,6 +526,20 @@ nav {
     border-radius: 0;
     padding: 1rem 1.5rem;
     min-width: auto;
+}
+
+.nav-dropdown-content .nav-btn.nav-btn-sub {
+    font-size: 0.92rem;
+    font-weight: 500;
+    padding-left: 2rem;
+    color: #95a5a6;
+    border-left: 3px solid rgba(233, 69, 96, 0.35);
+}
+
+.nav-dropdown-content .nav-btn.nav-btn-sub:hover {
+    color: #f39c12;
+    background: rgba(233, 69, 96, 0.12);
+    border-left-color: #e94560;
 }
 
 .nav-dropdown-content .nav-btn:last-child {
@@ -1424,20 +1481,90 @@ li:hover {
     .nav-dropdown.active .nav-dropdown-content {
         display: block;
         position: relative;
-        box-shadow: none;
+        box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.15);
         border: none;
-        background: rgba(0, 0, 0, 0.2);
-        border-radius: 0;
-        padding: 0;
+        border-left: 4px solid #e94560;
+        background: rgba(0, 0, 0, 0.32);
+        border-radius: 0 10px 10px 0;
+        margin: 0 0.65rem 0.5rem 1rem;
+        padding: 0.35rem 0;
         animation: slideDown 0.3s ease forwards;
     }
 
     .nav-dropbtn {
         width: 100%;
         text-align: left;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        padding: 0.9rem 1rem;
-        font-size: 0.95rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 0.95rem 1rem;
+        font-size: 1rem;
+        font-weight: 700;
+        background: rgba(233, 69, 96, 0.06);
+        color: #ecf0f1;
+    }
+
+    .nav-dropdown.active .nav-dropbtn {
+        color: #f39c12;
+        background: rgba(233, 69, 96, 0.14);
+        border-left: 4px solid #e94560;
+    }
+
+    .nav-dropdown-content .nav-btn.nav-btn-sub {
+        font-size: 0.88rem;
+        font-weight: 500;
+        padding: 0.8rem 1rem 0.8rem 1.35rem;
+        color: #a8b4be !important;
+        border-left: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        position: relative;
+    }
+
+    .nav-dropdown-content .nav-btn.nav-btn-sub::before {
+        content: '›';
+        position: absolute;
+        left: 0.55rem;
+        color: #e94560;
+        font-weight: 700;
+        font-size: 1.1rem;
+        line-height: 1;
+    }
+
+    .nav-dropdown-content .nav-btn.nav-btn-sub:hover,
+    .nav-dropdown-content .nav-btn.nav-btn-sub.active {
+        color: #f39c12 !important;
+        background: rgba(233, 69, 96, 0.1);
+        padding-left: 1.5rem;
+    }
+
+    body.light-theme .nav-dropdown.active .nav-dropdown-content {
+        background: rgba(227, 242, 253, 0.95) !important;
+        border-left-color: #42a5f5 !important;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+    }
+
+    body.light-theme .nav-dropbtn {
+        background: rgba(90, 157, 230, 0.1) !important;
+        color: #1a365d !important;
+    }
+
+    body.light-theme .nav-dropdown.active .nav-dropbtn {
+        color: #1565c0 !important;
+        background: rgba(90, 157, 230, 0.2) !important;
+        border-left-color: #42a5f5 !important;
+    }
+
+    body.light-theme .nav-dropdown-content .nav-btn.nav-btn-sub {
+        color: #4a6785 !important;
+        border-bottom-color: rgba(66, 165, 245, 0.15) !important;
+    }
+
+    body.light-theme .nav-dropdown-content .nav-btn.nav-btn-sub::before {
+        color: #42a5f5;
+    }
+
+    body.light-theme .nav-dropdown-content .nav-btn.nav-btn-sub:hover,
+    body.light-theme .nav-dropdown-content .nav-btn.nav-btn-sub.active {
+        color: #0d47a1 !important;
+        background: rgba(66, 165, 245, 0.12) !important;
     }
 
     /* Balance container in nav */
@@ -1753,9 +1880,16 @@ li:hover {
     }
 
     .dice-val {
-        width: 60px;
-        height: 60px;
-        font-size: 3rem;
+        --dice-size: clamp(56px, 16vw, 76px);
+        --pip-size: clamp(8px, 2.5vw, 11px);
+    }
+
+    .slot-reel {
+        font-size: 2rem;
+    }
+
+    .bj-cards-area {
+        gap: 4px;
     }
 
     /* Coin */
@@ -2203,6 +2337,28 @@ html {
     display: inline-block;
 }
 
+/* Слоты — плавное вращение барабанов */
+.slot-reels {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: clamp(0.35rem, 2vw, 1rem);
+}
+
+.slot-reel {
+    will-change: transform;
+    transition: transform 0.25s ease-out;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    min-width: clamp(2.5rem, 12vw, 3.5rem);
+    text-align: center;
+}
+
+.slot-reel.is-spinning {
+    opacity: 0.92;
+}
+
 .game-anim-huge {
     font-size: 5rem;
     display: inline-block;
@@ -2251,28 +2407,62 @@ html {
 
 /* --- Added Game Specific Styles --- */
 
-/* Dice */
+/* Dice — 3D-кубики с точками */
 .dice-container {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 2rem;
-    min-height: 150px;
+    gap: clamp(1.25rem, 6vw, 2.5rem);
+    min-height: clamp(120px, 22vw, 160px);
+    padding: 0.5rem;
 }
 
 .dice-val {
-    font-size: 4rem;
-    background: #ffffff !important;
-    color: #1A365D !important;
-    -webkit-text-fill-color: #1A365D !important;
-    width: 80px;
-    height: 80px;
-    border-radius: 15px;
-    border: 2px solid #000000 !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    --dice-size: clamp(64px, 18vw, 88px);
+    --pip-size: clamp(9px, 2.8vw, 13px);
+    --pip-color: #c0392b;
+    width: var(--dice-size);
+    height: var(--dice-size);
+    padding: clamp(8px, 2.5vw, 12px);
+    border-radius: clamp(12px, 3vw, 18px);
+    background: linear-gradient(145deg, #ffffff 0%, #f0f4f8 45%, #e8ecf0 100%) !important;
+    border: 2px solid rgba(0, 0, 0, 0.12) !important;
+    box-shadow:
+        0 6px 0 #b0bcc8,
+        0 10px 24px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 2px;
+    box-sizing: border-box;
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+.dice-pip {
+    width: var(--pip-size);
+    height: var(--pip-size);
+    border-radius: 50%;
+    margin: auto;
+    opacity: 0;
+    transform: scale(0.6);
+    transition: opacity 0.1s ease, transform 0.1s ease;
+}
+
+.dice-pip--on {
+    opacity: 1;
+    transform: scale(1);
+    background: radial-gradient(circle at 35% 35%, #ff6b6b, var(--pip-color) 55%, #922b21);
+    box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.dice-val.is-rolling {
+    box-shadow:
+        0 4px 0 #b0bcc8,
+        0 14px 28px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
 }
 
 /* Coin */
@@ -2339,16 +2529,56 @@ html {
 }
 
 .card-item {
-    width: 40px;
-    height: 60px;
-    border-radius: 5px;
+    width: clamp(40px, 11vw, 52px);
+    height: clamp(58px, 15vw, 76px);
+    border-radius: 6px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
+    gap: 2px;
     font-weight: bold;
     box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
     background: #ecf0f1;
+    flex-shrink: 0;
+}
+
+.card-rank-num {
+    font-size: clamp(1rem, 4.2vw, 1.35rem);
+    line-height: 1;
+    font-weight: 800;
+}
+
+.card-item--face .card-rank-num {
+    font-size: clamp(1.05rem, 4.5vw, 1.4rem);
+    letter-spacing: 0.02em;
+}
+
+.card-rank-suit {
+    font-size: clamp(0.85rem, 3.2vw, 1.15rem);
+    line-height: 1;
+}
+
+/* Блэкджек — стол на разных экранах */
+@media screen and (max-width: 768px) {
+    .bj-table {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .bj-hand-container {
+        width: 100%;
+    }
+
+    .bj-cards-area {
+        min-height: 80px;
+    }
+}
+
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+    .bj-hand-container {
+        width: 48%;
+    }
 }
 
 .card-item.red {
@@ -3278,66 +3508,116 @@ button.odds-card {
     -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(233, 69, 96, 0.15);
     border-radius: 20px;
-    padding: 1.5rem;
-    margin-top: 2rem;
+    padding: 1.25rem;
+    margin-top: 0;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+}
+
+.bh-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1.1rem;
 }
 
 .bh-title {
     color: #f39c12;
-    margin-top: 0;
-    margin-bottom: 1rem;
-    font-size: 1.5rem;
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 800;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.bh-reset-btn {
+    flex: 0 0 auto;
+    padding: 0.55rem 1rem;
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bh-reset-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(231, 76, 60, 0.35);
 }
 
 .bh-counters {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.bh-counters-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.65rem;
 }
 
 .bh-counter {
-    background: rgba(0, 0, 0, 0.2);
-    padding: 0.5rem 1rem;
-    border-radius: 10px;
-    font-weight: bold;
-    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    background: rgba(0, 0, 0, 0.22);
+    padding: 0.65rem 0.5rem;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .bh-win {
     color: #2ecc71;
-    border-left: 3px solid #2ecc71;
+    border-color: rgba(46, 204, 113, 0.35);
+    background: rgba(46, 204, 113, 0.08);
 }
 
 .bh-lose {
     color: #e74c3c;
-    border-left: 3px solid #e74c3c;
+    border-color: rgba(231, 76, 60, 0.35);
+    background: rgba(231, 76, 60, 0.08);
 }
 
 .bh-draw {
     color: #f1c40f;
-    border-left: 3px solid #f1c40f;
+    border-color: rgba(241, 196, 15, 0.35);
+    background: rgba(241, 196, 15, 0.08);
+}
+
+.bh-total-win,
+.bh-total-lose {
+    grid-column: 1 / -1;
+    font-size: 1.05rem;
+    padding: 0.75rem 1rem;
+    margin-left: 0;
 }
 
 .bh-total-win {
-    color: #f39c12;
-    border-left: 3px solid #f39c12;
-    margin-left: auto;
+    color: #2ecc71;
+    border-color: rgba(46, 204, 113, 0.4);
+    background: rgba(46, 204, 113, 0.12);
 }
 
 .bh-total-lose {
     color: #e74c3c;
-    border-left: 3px solid #e74c3c;
-    margin-left: auto;
+    border-color: rgba(231, 76, 60, 0.4);
+    background: rgba(231, 76, 60, 0.12);
 }
 
 .bh-list {
-    max-height: 400px;
+    max-height: min(600px, 65vh);
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    padding-right: 0.5rem;
+    gap: 0.75rem;
+    padding-right: 0.35rem;
 }
 
 .bh-list::-webkit-scrollbar {
@@ -3613,21 +3893,25 @@ button.odds-card {
         flex: auto;
     }
 
+    .bh-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .bh-reset-btn {
+        width: 100%;
+        text-align: center;
+    }
+
+    .bh-counters-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+    }
+
     .bh-item {
         flex-direction: column;
         align-items: flex-start;
         gap: 0.5rem;
-    }
-
-    .bh-game {
-        width: 100%;
-    }
-
-    .bh-amount,
-    .bh-balance {
-        width: 100%;
-        text-align: left;
-        margin-top: 0;
     }
 
     .calc-items-grid {
@@ -3762,9 +4046,15 @@ body.light-theme .nav-dropdown-content {
     box-shadow: 0 16px 48px rgba(26, 54, 93, 0.08) !important;
 }
 
-body.light-theme .nav-dropdown-content .nav-btn {
-    color: #1A365D !important;
+body.light-theme .nav-dropdown-content .nav-btn.nav-btn-sub {
+    color: #4a6785 !important;
     border-bottom: 1px solid rgba(66, 165, 245, 0.15) !important;
+}
+
+body.light-theme .nav-dropdown-content .nav-btn.nav-btn-sub:hover,
+body.light-theme .nav-dropdown-content .nav-btn.nav-btn-sub.active {
+    color: #0d47a1 !important;
+    background: rgba(66, 165, 245, 0.1) !important;
 }
 
 body.light-theme .nav-balance-val {
@@ -3913,11 +4203,15 @@ body.light-theme .bh-item {
 }
 
 body.light-theme .bh-game {
-    color: #1A365D !important;
+    color: #1a365d !important;
 }
 
-body.light-theme .bh-balance {
-    color: #4A5568 !important;
+body.light-theme .bh-title {
+    color: #1565c0 !important;
+}
+
+body.light-theme .bh-counter {
+    background: rgba(255, 255, 255, 0.9) !important;
 }
 
 body.light-theme .bh-empty {
@@ -4214,13 +4508,22 @@ body.light-theme h1 {
 }
 
 body.light-theme h2 {
-    color: #1A365D !important;
-    -webkit-text-fill-color: #1A365D !important;
+    color: #0d47a1 !important;
+    -webkit-text-fill-color: #0d47a1 !important;
+    font-weight: 800 !important;
 }
 
 body.light-theme h3 {
-    color: #1976D2 !important;
-    -webkit-text-fill-color: #1976D2 !important;
+    color: #1565c0 !important;
+    -webkit-text-fill-color: #1565c0 !important;
+    font-weight: 700 !important;
+}
+
+body.light-theme .modal-content h2 {
+    font-size: 1.45rem !important;
+    border-bottom: 2px solid rgba(13, 71, 161, 0.18);
+    padding-bottom: 0.4rem;
+    margin-bottom: 0.85rem !important;
 }
 
 body.light-theme .formula,
@@ -4254,16 +4557,73 @@ body.light-theme .beautiful-formula:hover {
 }
 
 body.light-theme .beautiful-formula .formula-title {
-    color: #1565C0 !important;
-    -webkit-text-fill-color: #1565C0 !important;
+    color: #0d47a1 !important;
+    -webkit-text-fill-color: #0d47a1 !important;
+    font-weight: 800 !important;
+    font-size: 1.12rem !important;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border-bottom: 2px solid rgba(21, 101, 192, 0.3);
+    padding-bottom: 0.4rem;
+    margin-bottom: 0.65rem !important;
 }
 
 body.light-theme .beautiful-formula .formula-content {
-    color: #0D47A1 !important;
-    -webkit-text-fill-color: #0D47A1 !important;
-    font-weight: 700;
-    font-size: 1.15rem;
-    /* Слегка увеличен (на ~10%) для идеальной читаемости формул */
+    color: #37474f !important;
+    -webkit-text-fill-color: #37474f !important;
+    font-weight: 400 !important;
+    font-size: 1rem !important;
+}
+
+body.light-theme .beautiful-formula .formula-content strong {
+    color: #1565c0 !important;
+    -webkit-text-fill-color: #1565c0 !important;
+    font-weight: 700 !important;
+}
+
+/* Заголовки в окне «Подробно» и блоках теории (светлая тема) */
+body.light-theme #detailsArea > h2 {
+    color: #0d47a1 !important;
+    -webkit-text-fill-color: #0d47a1 !important;
+    font-size: 1.55rem !important;
+    font-weight: 800 !important;
+    border-bottom: 3px solid rgba(13, 71, 161, 0.2);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem !important;
+}
+
+body.light-theme .details-block h4 {
+    color: #1565c0 !important;
+    -webkit-text-fill-color: #1565c0 !important;
+    font-size: 1.28rem !important;
+    font-weight: 800 !important;
+    margin-bottom: 0.85rem !important;
+    padding-bottom: 0.35rem;
+    border-bottom: 2px solid rgba(21, 101, 192, 0.22);
+}
+
+body.light-theme .details-block p,
+body.light-theme .details-block li,
+body.light-theme .details-block ul,
+body.light-theme .details-block ol {
+    color: #37474f !important;
+    -webkit-text-fill-color: #37474f !important;
+    font-weight: 400 !important;
+    font-size: 1rem !important;
+    line-height: 1.7 !important;
+}
+
+body.light-theme .details-block ul[style],
+body.light-theme .details-block ul[style] li,
+body.light-theme .details-block ul[style] strong {
+    color: #37474f !important;
+    -webkit-text-fill-color: #37474f !important;
+}
+
+body.light-theme .details-block strong {
+    color: #1565c0 !important;
+    -webkit-text-fill-color: #1565c0 !important;
+    font-weight: 700 !important;
 }
 
 body.light-theme button {
@@ -4523,10 +4883,12 @@ body.light-theme .roulette-result-val.val-green {
 
 .beautiful-formula .formula-content {
     color: #f39c12;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-size: 1.05rem;
-    line-height: 1.6;
-    word-break: break-all;
+    line-height: 1.65;
+    word-break: normal;
+    overflow-wrap: break-word;
+    hyphens: auto;
 }
 
 /* КРАСИВЫЙ ПОЛЗУНОК (SCROLLBAR) ВО ВСЕХ ОКНАХ И ИГРАХ */
@@ -5056,13 +5418,18 @@ body.light-theme .nav-dropdown.active .nav-dropdown-content {
     background: rgba(255, 255, 255, 0.92) !important;
 }
 
-/* --- 22. Кости (dice) — тёмные на светлом фоне --- */
+/* --- 22. Кости (dice) — светлая тема --- */
 body.light-theme .dice-val {
-    background: #ffffff !important;
-    color: #1A365D !important;
-    -webkit-text-fill-color: #1A365D !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
-    border: 2px solid #000000 !important;
+    background: linear-gradient(145deg, #ffffff 0%, #f8fafc 50%, #eef2f7 100%) !important;
+    border: 2px solid rgba(0, 0, 0, 0.1) !important;
+    box-shadow:
+        0 5px 0 #cbd5e1,
+        0 8px 20px rgba(26, 54, 93, 0.15),
+        inset 0 1px 0 #fff !important;
+}
+
+body.light-theme .dice-pip--on {
+    background: radial-gradient(circle at 35% 35%, #ff7675, #c0392b 60%, #922b21) !important;
 }
 
 /* Removed roulette overrides causing white backgrounds and gray animation text */
@@ -5195,14 +5562,6 @@ body.light-theme .result-message {
     margin-top: 15px;
     text-align: center;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important;
-}
-
-body.light-theme .dice-val {
-    background: #ffffff !important;
-    color: #0f172a !important;
-    -webkit-text-fill-color: #0f172a !important;
-    border: 2px solid #000000 !important;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6) !important;
 }
 
 /* --- 27. Рамки для плашек баланса и результата (под их цвет) во всех играх --- */
@@ -5557,4 +5916,43 @@ input.money-input.betting-amount-input {
 
 .betting-slider {
     touch-action: pan-y;
+}
+
+/* Формулы и блоки теории — читаемость на телефоне */
+@media (max-width: 768px) {
+    .beautiful-formula {
+        padding: 1rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .beautiful-formula .formula-title {
+        font-size: 0.95rem;
+        letter-spacing: 0.4px;
+        line-height: 1.35;
+    }
+
+    .beautiful-formula .formula-content {
+        font-size: 1.08rem;
+        line-height: 1.7;
+    }
+
+    .details-block {
+        font-size: 1rem;
+        line-height: 1.7;
+    }
+
+    .details-block h4 {
+        font-size: 1.1rem;
+    }
+
+    .details-block p,
+    .details-block li {
+        font-size: 1rem;
+        line-height: 1.7;
+    }
+
+    .details-block ul,
+    .details-block ol {
+        padding-left: 1.25rem;
+    }
 }

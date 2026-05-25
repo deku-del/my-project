@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="ru">
 
 <head>
@@ -24,11 +24,11 @@
             <div class="nav-dropdown">
                 <button class="nav-dropbtn" onclick="this.parentElement.classList.toggle('active')">📚 Теория ▾</button>
                 <div class="nav-dropdown-content">
-                    <button class="nav-btn" onclick="switchSection('theory', this); toggleMenu()">📊 Базовая
+                    <button class="nav-btn nav-btn-sub" onclick="switchSection('theory', this); toggleMenu()">📊 Базовая
                         теория</button>
-                    <button class="nav-btn" onclick="switchSection('advanced', this); toggleMenu()">📐 Расширенная
+                    <button class="nav-btn nav-btn-sub" onclick="switchSection('advanced', this); toggleMenu()">📐 Расширенная
                         теория</button>
-                    <button class="nav-btn" onclick="switchSection('probability', this); toggleMenu()">🔬
+                    <button class="nav-btn nav-btn-sub" onclick="switchSection('probability', this); toggleMenu()">🔬
                         Применение</button>
                 </div>
             </div>
@@ -38,9 +38,9 @@
                 <button class="nav-dropbtn" onclick="this.parentElement.classList.toggle('active')">🎲 Симуляторы
                     ▾</button>
                 <div class="nav-dropdown-content">
-                    <button class="nav-btn" onclick="switchSection('simulator', this); toggleMenu()">🎮 Казино</button>
-                    <button class="nav-btn" onclick="switchSection('betting', this); toggleMenu()">🎯 Ставки</button>
-                    <button class="nav-btn" onclick="switchSection('football', this); toggleMenu()">⚽ Футбольная
+                    <button class="nav-btn nav-btn-sub" onclick="switchSection('simulator', this); toggleMenu()">🎮 Казино</button>
+                    <button class="nav-btn nav-btn-sub" onclick="switchSection('betting', this); toggleMenu()">🎯 Ставки</button>
+                    <button class="nav-btn nav-btn-sub" onclick="switchSection('football', this); toggleMenu()">⚽ Футбольная
                         статистика</button>
                 </div>
             </div>
@@ -50,11 +50,11 @@
                 <button class="nav-dropbtn" onclick="this.parentElement.classList.toggle('active')">🛠 Инструменты
                     ▾</button>
                 <div class="nav-dropdown-content">
-                    <button class="nav-btn" onclick="switchSection('history', this); toggleMenu()">📜 История
+                    <button class="nav-btn nav-btn-sub" onclick="switchSection('history', this); toggleMenu()">📜 История
                         ставок</button>
-                    <button class="nav-btn" onclick="switchSection('calculator', this); toggleMenu()">📊 Калькулятор
+                    <button class="nav-btn nav-btn-sub" onclick="switchSection('calculator', this); toggleMenu()">📊 Калькулятор
                         потерь</button>
-                    <button class="nav-btn" onclick="switchSection('myths', this); toggleMenu()">🚫 Развенчание
+                    <button class="nav-btn nav-btn-sub" onclick="switchSection('myths', this); toggleMenu()">🚫 Развенчание
                         мифов</button>
                 </div>
             </div>
@@ -881,21 +881,17 @@
         <!-- ИСТОРИЯ СТАВОК -->
         <section id="history" class="section">
             <h2>📜 История ваших ставок</h2>
-            <div class="bet-history-panel" style="margin-top: 0;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h3 class="bh-title" style="margin: 0;">Вся статистика</h3>
-                    <button onclick="clearBetHistoryOnly()"
-                        style="padding: 8px 18px; background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: all 0.3s ease;"
-                        onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 15px rgba(231,76,60,0.4)'"
-                        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'">Сбросить историю
-                        🗑</button>
+            <div class="bet-history-panel">
+                <div class="bh-toolbar">
+                    <h3 class="bh-title">Вся статистика</h3>
+                    <button type="button" class="bh-reset-btn" onclick="clearBetHistoryOnly()">Сбросить 🗑</button>
                 </div>
                 <div id="bet-history-counters" class="bh-counters">
                     <span class="bh-counter bh-win">✅ 0</span>
                     <span class="bh-counter bh-lose">❌ 0</span>
                     <span class="bh-counter bh-draw">🤝 0</span>
                 </div>
-                <div id="bet-history-list" class="bh-list" style="max-height: 600px;">
+                <div id="bet-history-list" class="bh-list">
                     <div class="bh-empty">Пока нет ставок. Сыграйте в любую игру!</div>
                 </div>
             </div>
