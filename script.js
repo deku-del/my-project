@@ -1521,6 +1521,8 @@ function openGameUI(game) {
             break;
         case 'blackjack':
             gameArea.innerHTML = createBlackjackGame();
+            bjGameActive = false;
+            requestAnimationFrame(() => updateBjButtonsState());
             break;
         case 'rps':
             gameArea.innerHTML = createRPSGame();
@@ -1761,7 +1763,7 @@ function createRouletteGame() {
             </div>
         </fieldset>
 
-        <div style="margin-top: 1rem;">
+        <div class="game-deposit-row">
             <button class="btn-reset" onclick="resetCasinoBalance()" style="width: 100%;">💳 Установить баланс (Депозит)</button>
         </div>
 
@@ -1769,7 +1771,7 @@ function createRouletteGame() {
             <div id="roulette-anim" class="game-anim-text">Вращайте колесо!</div>
         </div>
 
-        <div id="result"></div>
+        <div id="result" class="game-result-slot"></div>
         <div style="text-align: center; color: #f39c12; font-weight: bold; font-size: 1.2rem; margin: 1rem 0; padding: 1rem; background: rgba(243, 156, 18, 0.1); border-radius: 8px;">
             💰 Баланс: $<span id="balance-display">${formatMoney(balance)}</span>
         </div>
@@ -1793,6 +1795,11 @@ function playRoulette(color) {
         return;
     }
 
+    const animDisplay = document.getElementById('roulette-anim');
+    if (!animDisplay) return;
+
+    setGameBetButtonsDisabled(true);
+
     balance -= bet;
     gameStats.totalBets += bet;
     updateGlobalBalance();
@@ -1806,11 +1813,8 @@ function playRoulette(color) {
         resultDiv.style.display = 'block';
     }
 
-    const animDisplay = document.getElementById('roulette-anim');
-    if (animDisplay) {
-        animDisplay.innerHTML = '';
-        animDisplay.style.transform = '';
-    }
+    animDisplay.innerHTML = '';
+    animDisplay.style.transform = '';
 
     let spins = 0;
     const maxSpins = 20;
@@ -1903,6 +1907,7 @@ function finishRoulette(color, bet) {
     if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
     updateGlobalBalance();
     updateStats();
+    setGameBetButtonsDisabled(false);
 }
 
 
@@ -1945,11 +1950,11 @@ function createSlotsGame() {
             </div>
         </div>
 
-        <div style="margin-top: 1rem;">
+        <div class="game-deposit-row">
             <button class="btn-reset" onclick="resetCasinoBalance()" style="width: 100%;">💳 Установить баланс (Депозит)</button>
         </div>
 
-        <div id="slot-result"></div>
+        <div id="slot-result" class="game-result-slot"></div>
         <div style="text-align: center; color: #f39c12; font-weight: bold; font-size: 1.2rem; margin: 1rem 0; padding: 1rem; background: rgba(243, 156, 18, 0.1); border-radius: 8px;">
             💰 Баланс: $<span id="balance-display">${formatMoney(balance)}</span>
         </div>
@@ -1960,6 +1965,47 @@ function createSlotsGame() {
 let slotsSpinGeneration = 0;
 
 const SLOT_SYMBOLS = ['🍒', '🍓', '🍇', '🎁', '⭐', '💎', '👑'];
+
+function isSimulationButton(el) {
+    const onclick = el.getAttribute('onclick') || '';
+    return onclick.includes('runSimulation');
+}
+
+/** Кнопки ставок в модалке игр (без «Симуляция») */
+function setGameBetButtonsDisabled(disabled) {
+    const gameArea = document.getElementById('gameArea');
+    if (!gameArea) return;
+    const fieldset = gameArea.querySelector('.game-bet-fieldset');
+    if (!fieldset) return;
+    fieldset.querySelectorAll('.btn-play').forEach(btn => {
+        if (isSimulationButton(btn)) return;
+        btn.disabled = disabled;
+    });
+}
+
+/** Карточки исходов и прочие действия в разделе «Ставки» (без кнопок симуляции) */
+function setBettingPlayButtonsDisabled(disabled) {
+    const bettingSection = document.getElementById('betting');
+    if (!bettingSection) return;
+    bettingSection.querySelectorAll('.odds-card').forEach(card => {
+        card.disabled = disabled;
+    });
+}
+
+function updateBjButtonsState() {
+    const fieldset = document.getElementById('bj-controls-fieldset')
+        || document.querySelector('#gameArea .game-bet-fieldset');
+    if (!fieldset) return;
+    const dealBtn = fieldset.querySelector('#bj-controls .btn-play');
+    const actionBtns = fieldset.querySelectorAll('#bj-actions .btn-play');
+    if (bjGameActive) {
+        if (dealBtn) dealBtn.disabled = true;
+        actionBtns.forEach(btn => { btn.disabled = false; });
+    } else {
+        if (dealBtn) dealBtn.disabled = false;
+        actionBtns.forEach(btn => { btn.disabled = true; });
+    }
+}
 
 function playSlots() {
     const betInput = document.getElementById('slot-bet');
@@ -1975,6 +2021,8 @@ function playSlots() {
         showAlert('Некорректная ставка или недостаточно средств!');
         return;
     }
+
+    setGameBetButtonsDisabled(true);
 
     balance -= bet;
     gameStats.totalBets += bet;
@@ -1992,7 +2040,10 @@ function playSlots() {
     const slotDisplay = document.getElementById('slot-display');
     const reelIds = ['reel1', 'reel2', 'reel3'];
     const reels = reelIds.map(id => document.getElementById(id)).filter(Boolean);
-    if (!reels.length) return;
+    if (!reels.length) {
+        setGameBetButtonsDisabled(false);
+        return;
+    }
 
     const won = Math.random() < (7 / 343);
     let finalReels = [];
@@ -2061,6 +2112,7 @@ function playSlots() {
             recordBet('slots', bet, 'lose', 0);
         }
         updateStats();
+        setGameBetButtonsDisabled(false);
     }
 
     function animateFrame(now) {
@@ -2134,7 +2186,7 @@ function createWheelGame() {
             </div>
         </fieldset>
 
-        <div style="margin-top: 1rem;">
+        <div class="game-deposit-row">
             <button class="btn-reset" onclick="resetCasinoBalance()" style="width: 100%;">💳 Установить баланс (Депозит)</button>
         </div>
 
@@ -2142,7 +2194,7 @@ function createWheelGame() {
             <div id="wheel-anim" class="game-anim-huge">🎪</div>
         </div>
 
-        <div id="wheel-result"></div>
+        <div id="wheel-result" class="game-result-slot"></div>
         <div style="text-align: center; color: #f39c12; font-weight: bold; font-size: 1.2rem; margin: 1rem 0; padding: 1rem; background: rgba(243, 156, 18, 0.1); border-radius: 8px;">
             💰 Баланс: $<span id="balance-display">${formatMoney(balance)}</span>
         </div>
@@ -2165,6 +2217,11 @@ function playWheel(choice) {
         return;
     }
 
+    const animDisplay = document.getElementById('wheel-anim');
+    if (!animDisplay) return;
+
+    setGameBetButtonsDisabled(true);
+
     balance -= bet;
     gameStats.totalBets += bet;
     updateGlobalBalance();
@@ -2177,10 +2234,6 @@ function playWheel(choice) {
         resultDiv.textContent = '🎪 Колесо вращается...';
         resultDiv.style.display = 'block';
     }
-
-    // Дисплей
-    let animDisplay = document.getElementById('wheel-anim');
-    if (!animDisplay) return;
 
     // Анимация вращения (добавлен КЛЕВЕР)
     const symbols = ['⭐', '❤️', '💎', '🍀'];
@@ -2239,6 +2292,7 @@ function finishWheel(bet, choice, symbols) {
     if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
     updateGlobalBalance();
     updateStats();
+    setGameBetButtonsDisabled(false);
 }
 
 // ===== КОСТИ (Переработано: БОЛЬШЕ/МЕНЬШЕ 7) =====
@@ -2280,11 +2334,11 @@ function createDiceGame() {
             <div id="dice2" class="dice-val" data-value="6" aria-label="Кость 2">${buildDiceFaceHTML(6)}</div>
         </div>
 
-        <div style="margin-top: 1rem;">
+        <div class="game-deposit-row">
             <button class="btn-reset" onclick="resetCasinoBalance()" style="width: 100%;">💳 Установить баланс (Депозит)</button>
         </div>
 
-        <div id="dice-result"></div>
+        <div id="dice-result" class="game-result-slot"></div>
         <div style="text-align: center; color: #f39c12; font-weight: bold; font-size: 1.2rem; margin: 1rem 0; padding: 1rem; background: rgba(243, 156, 18, 0.1); border-radius: 8px;">
             💰 Баланс: $<span id="balance-display">${formatMoney(balance)}</span>
         </div>
@@ -2334,15 +2388,17 @@ function playDice(choice) {
         return;
     }
 
+    const dice1 = document.getElementById('dice1');
+    const dice2 = document.getElementById('dice2');
+    if (!dice1 || !dice2) return;
+
+    setGameBetButtonsDisabled(true);
+
     balance -= bet;
     gameStats.totalBets += bet;
     updateGlobalBalance();
     const balanceDisplay = document.getElementById('balance-display');
     if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
-
-    const dice1 = document.getElementById('dice1');
-    const dice2 = document.getElementById('dice2');
-    if (!dice1 || !dice2) return;
 
     let outcomeWon = false;
     if (choice === 'under') outcomeWon = Math.random() < 15 / 36;
@@ -2424,6 +2480,7 @@ function playDice(choice) {
         if (balanceEl) balanceEl.textContent = formatMoney(balance);
         updateGlobalBalance();
         updateStats();
+        setGameBetButtonsDisabled(false);
     }
 
     function animateDice(now) {
@@ -2498,11 +2555,11 @@ function createCoinGame() {
             <div id="coin-visual" class="coin-visual">🟡</div>
         </div>
 
-        <div style="margin-top: 1rem;">
+        <div class="game-deposit-row">
             <button class="btn-reset" onclick="resetCasinoBalance()" style="width: 100%;">💳 Установить баланс (Депозит)</button>
         </div>
 
-        <div id="coin-result"></div>
+        <div id="coin-result" class="game-result-slot"></div>
         <div style="text-align: center; color: #f39c12; font-weight: bold; font-size: 1.2rem; margin: 1rem 0; padding: 1rem; background: rgba(243, 156, 18, 0.1); border-radius: 8px;">
             💰 Баланс: $<span id="balance-display">${formatMoney(balance)}</span>
         </div>
@@ -2525,13 +2582,17 @@ function playCoin(choice) {
         return;
     }
 
+    const coinVisual = document.getElementById('coin-visual');
+    if (!coinVisual) return;
+
+    setGameBetButtonsDisabled(true);
+
     balance -= bet;
     gameStats.totalBets += bet;
     updateGlobalBalance();
     const balanceDisplay = document.getElementById('balance-display');
     if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
 
-    const coinVisual = document.getElementById('coin-visual');
     const resultDiv = document.getElementById('coin-result');
 
     // Сброс результата
@@ -2578,6 +2639,7 @@ function playCoin(choice) {
         if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
         updateGlobalBalance();
         updateStats();
+        setGameBetButtonsDisabled(false);
     }, 1500);
 }
 
@@ -2641,11 +2703,11 @@ function createBlackjackGame() {
             </div>
         </div>
 
-        <div style="margin-top: 1rem;">
+        <div class="game-deposit-row">
             <button class="btn-reset" onclick="resetCasinoBalance()" style="width: 100%;">💳 Установить баланс (Депозит)</button>
         </div>
 
-        <div id="bj-result"></div>
+        <div id="bj-result" class="game-result-slot"></div>
         <div style="text-align: center; color: #f39c12; font-weight: bold; font-size: 1.2rem; margin: 1rem 0; padding: 1rem; background: rgba(243, 156, 18, 0.1); border-radius: 8px;">
             💰 Баланс: $<span id="balance-display">${formatMoney(balance)}</span>
         </div>
@@ -2780,6 +2842,7 @@ function startBlackjack() {
     updateGlobalBalance();
 
     updateBJUI(true);
+    updateBjButtonsState();
 
     // Check Blackjacks
     const pSum = calculateHand(bjPlayerHand);
@@ -2791,16 +2854,24 @@ function startBlackjack() {
 function bjHit() {
     if (!bjGameActive) return;
 
+    const fieldset = document.getElementById('bj-controls-fieldset');
+    fieldset?.querySelectorAll('#bj-actions .btn-play').forEach(btn => { btn.disabled = true; });
+
     bjPlayerHand.push(bjDeck.pop());
     updateBJUI(true);
 
     if (calculateHand(bjPlayerHand) > 21) {
         endBlackjack(false); // Bust
+    } else {
+        fieldset?.querySelectorAll('#bj-actions .btn-play').forEach(btn => { btn.disabled = false; });
     }
 }
 
 function bjStand() {
     if (!bjGameActive) return;
+
+    const fieldset = document.getElementById('bj-controls-fieldset');
+    fieldset?.querySelectorAll('#bj-actions .btn-play').forEach(btn => { btn.disabled = true; });
 
     // Dealer turn
     while (calculateHand(bjDealerHand) < 17) {
@@ -2864,6 +2935,7 @@ function endBlackjack(playerStood) {
     if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
     updateGlobalBalance();
     updateStats();
+    updateBjButtonsState();
 }
 
 // ===== ОБНОВЛЕНИЕ СТАТИСТИКИ =====
@@ -2985,11 +3057,11 @@ function createRPSGame() {
             <div id="ai-choice" class="rps-choice">❓</div>
         </div>
 
-        <div style="margin-top: 1rem;">
+        <div class="game-deposit-row">
             <button class="btn-reset" onclick="resetCasinoBalance()" style="width: 100%;">💳 Установить баланс (Депозит)</button>
         </div>
 
-        <div id="rps-result"></div>
+        <div id="rps-result" class="game-result-slot"></div>
         <div style="text-align: center; color: #f39c12; font-weight: bold; font-size: 1.2rem; margin: 1rem 0; padding: 1rem; background: rgba(243, 156, 18, 0.1); border-radius: 8px;">
             💰 Баланс: $<span id="balance-display">${formatMoney(balance)}</span>
         </div>
@@ -3011,6 +3083,8 @@ function playRPS(playerMove) {
         showAlert('Некорректная ставка или недостаточно средств!');
         return;
     }
+
+    setGameBetButtonsDisabled(true);
 
     balance -= bet;
     gameStats.totalBets += bet;
@@ -3097,6 +3171,7 @@ function finishRPS(playerMove, bet) {
     if (balanceDisplay) balanceDisplay.textContent = formatMoney(balance);
     updateGlobalBalance();
     updateStats();
+    setGameBetButtonsDisabled(false);
 }
 
 // ===== BETTING TAB — POISSON-BASED FOOTBALL SIMULATOR =====
@@ -3301,8 +3376,7 @@ function runBettingSimulation() {
         return;
     }
 
-    const btn = document.getElementById('betting-sim-btn');
-    btn.disabled = true;
+    setBettingPlayButtonsDisabled(true);
 
     const xgHome = parseFloat(document.getElementById('xg-home').value);
     const xgAway = parseFloat(document.getElementById('xg-away').value);
@@ -3381,8 +3455,7 @@ function checkBetResult(score) {
         recordBet('betting', betAmount, 'lose', 0);
     }
 
-    // Re-enable
-    document.getElementById('betting-sim-btn').disabled = false;
+    setBettingPlayButtonsDisabled(false);
 }
 
 function showInlineNotif(type, message) {
@@ -3442,6 +3515,12 @@ function runSimulation(gameType) {
     let iterations = itersInput ? parseInt(itersInput.value) : 100;
     if (iterations < 1) iterations = 1;
     if (iterations > 200) iterations = 200;
+
+    if (gameType === 'betting') {
+        setBettingPlayButtonsDisabled(true);
+    } else {
+        setGameBetButtonsDisabled(true);
+    }
 
     let historyData = [];
     let currentBalance = balance;
@@ -3516,6 +3595,12 @@ function runSimulation(gameType) {
     if (betHistory.length > 50) betHistory.pop();
     saveBetHistory();
     renderBetHistory();
+
+    if (gameType === 'betting') {
+        setBettingPlayButtonsDisabled(false);
+    } else {
+        setGameBetButtonsDisabled(false);
+    }
 
     showSimulationResult(initialBalance, currentBalance, iterations, bet, historyData, wins, draws, losses);
 }
