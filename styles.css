@@ -399,10 +399,33 @@ h1 {
     }
 }
 
+.tagline-divider {
+    width: 80px;
+    height: 3px;
+    margin: 0.8rem auto 1rem;
+    border-radius: 3px;
+    background: linear-gradient(90deg, transparent, #e94560, #f39c12, transparent);
+    animation: fadeIn 1.2s ease;
+}
+
 .tagline {
-    color: #bdc3c7;
+    color: #8a939c;
     font-size: 1.1rem;
+    font-weight: 400;
+    line-height: 1.7;
+    max-width: 700px;
+    margin: 0 auto;
+    letter-spacing: 0.2px;
+    text-align: center;
     animation: fadeIn 1.5s ease;
+}
+
+.tagline-accent {
+    background: linear-gradient(135deg, #e94560, #f39c12);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 600;
 }
 
 /* НАВИГАЦИЯ */
@@ -4362,7 +4385,17 @@ body.light-theme h1 {
 }
 
 body.light-theme .tagline {
-    color: #2D3748 !important;
+    color: #4A5568 !important;
+}
+
+body.light-theme .tagline-divider {
+    background: linear-gradient(90deg, transparent, #1565C0, #42A5F5, transparent);
+}
+
+body.light-theme .tagline-accent {
+    background: linear-gradient(135deg, #1565C0, #0097A7);
+    -webkit-background-clip: text;
+    background-clip: text;
 }
 
 body.light-theme p {
