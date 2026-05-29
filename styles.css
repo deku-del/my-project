@@ -4927,11 +4927,7 @@ body.light-theme #theory .beautiful-formula .formula-content {
     -webkit-text-fill-color: #37474f !important;
 }
 
-body.light-theme .content-block .beautiful-formula .formula-content span,
-body.light-theme .details-block .beautiful-formula .formula-content span,
-body.light-theme .modal-content .beautiful-formula .formula-content span,
-body.light-theme #gameArea .beautiful-formula .formula-content span,
-body.light-theme #theory .beautiful-formula .formula-content span {}
+
 
 body.light-theme .content-block .beautiful-formula .formula-content strong,
 body.light-theme .details-block .beautiful-formula .formula-content strong,
@@ -6049,7 +6045,6 @@ body.light-theme .game-bet-fieldset legend {
 .scroll-to-top-btn,
 .menu-toggle {
     -webkit-tap-highlight-color: transparent;
-    tap-highlight-color: transparent;
     outline: none;
 }
 
@@ -6323,23 +6318,7 @@ input.money-input.betting-amount-input {
         line-height: 1.65;
     }
 
-    body.light-theme .content-block .beautiful-formula,
-    body.light-theme .details-block .beautiful-formula,
-    body.light-theme .modal-content .beautiful-formula,
-    body.light-theme #gameArea .beautiful-formula,
-    body.light-theme #theory .beautiful-formula {}
 
-    body.light-theme .content-block .beautiful-formula .formula-title,
-    body.light-theme .details-block .beautiful-formula .formula-title,
-    body.light-theme .modal-content .beautiful-formula .formula-title,
-    body.light-theme #gameArea .beautiful-formula .formula-title,
-    body.light-theme #theory .beautiful-formula .formula-title {}
-
-    body.light-theme .content-block .beautiful-formula .formula-content,
-    body.light-theme .details-block .beautiful-formula .formula-content,
-    body.light-theme .modal-content .beautiful-formula .formula-content,
-    body.light-theme #gameArea .beautiful-formula .formula-content,
-    body.light-theme #theory .beautiful-formula .formula-content {}
 
     .details-block {
         font-size: 1rem;
@@ -6361,3 +6340,31 @@ input.money-input.betting-amount-input {
         padding-left: 1.25rem;
     }
 }
+@media screen and (max-width: 768px) {
+    .toast-notification, .custom-toast {
+        top: 20px !important;
+        bottom: auto !important;
+        transform: translateX(-50%) !important;
+        animation: toastSlideDownEnterMobile 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+    }
+    .toast-notification.hiding, .custom-toast.hiding {
+        animation: toastSlideUpExitMobile 0.5s ease forwards !important;
+    }
+    @keyframes toastSlideDownEnterMobile {
+        from { opacity: 0; transform: translate(-50%, -50px); }
+        to { opacity: 1; transform: translate(-50%, 0); }
+    }
+    @keyframes toastSlideUpExitMobile {
+        from { opacity: 1; transform: translate(-50%, 0); }
+        to { opacity: 0; transform: translate(-50%, -50px); }
+    }
+}
+
+
+.card-item.red, .card-item.red * { color: #e74c3c !important; }
+.card-item.black, .card-item.black * { color: #2c3e50 !important; }
+
+
+body.light-theme .card-item.red, body.light-theme .card-item.red * { color: #e74c3c !important; -webkit-text-fill-color: #e74c3c !important; }
+body.light-theme .card-item.black, body.light-theme .card-item.black * { color: #2c3e50 !important; -webkit-text-fill-color: #2c3e50 !important; }
+

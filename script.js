@@ -349,12 +349,19 @@ function updateBodyScrollLock() {
             const pad = scrollbarWidth ? scrollbarWidth + 'px' : '';
             document.body.style.paddingRight = pad;
             if (nav) nav.style.paddingRight = pad;
+            
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(m => m.style.paddingRight = pad);
+            
             document.body.style.overflow = 'hidden';
         }
     } else {
         document.body.style.overflow = '';
         document.body.style.paddingRight = '';
         if (nav) nav.style.paddingRight = '';
+        
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(m => m.style.paddingRight = '');
     }
 }
 
@@ -416,11 +423,32 @@ function smoothScrollToGameResult(el) {
         const scrollContainer = el.closest('.modal-content');
         if (!scrollContainer) return;
         
-        // Скроллим в самый низ модального окна, как просил пользователь
-        scrollContainer.scrollTo({
-            top: scrollContainer.scrollHeight,
-            behavior: 'smooth'
-        });
+        if (window.innerWidth <= 768) {
+            scrollContainer.scrollTo({
+                top: scrollContainer.scrollHeight,
+                behavior: 'smooth'
+            });
+        } else {
+            const balanceBar = el.nextElementSibling;
+            if (balanceBar) {
+                const rect = balanceBar.getBoundingClientRect();
+                const containerRect = scrollContainer.getBoundingClientRect();
+                const offsetTop = rect.top - containerRect.top + scrollContainer.scrollTop;
+                
+                // Скроллим так, чтобы плашка баланса была видна внизу с запасом 50px
+                const targetScroll = offsetTop + balanceBar.offsetHeight - scrollContainer.clientHeight + 50;
+                
+                scrollContainer.scrollTo({
+                    top: Math.max(0, targetScroll),
+                    behavior: 'smooth'
+                });
+            } else {
+                scrollContainer.scrollTo({
+                    top: scrollContainer.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }
+        }
     }, 200);
 }
 
@@ -2840,7 +2868,7 @@ function createBlackjackGame() {
 }
 
 function createDeck() {
-    const suits = ['♠', '♥', '♦', '♣'];
+    const suits = ['\u2660', '\u2665', '\u2666', '\u2663'];
     const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
     const deck = [];
     for (let suit of suits) {
@@ -2895,7 +2923,7 @@ function getCardDisplayRank(card) {
 function renderCard(card, hidden = false) {
     if (hidden) return `<div class="card-item back"></div>`;
 
-    const colorClass = (card.suit === '♥' || card.suit === '♦') ? 'red' : 'black';
+    const colorClass = (card.suit === '\u2665' || card.suit === '\u2666') ? 'red' : 'black';
     const displayRank = getCardDisplayRank(card);
     const rankNum = getCardRankNumber(card);
     const rankHint = BJ_RANK_SHORT[card.value] || card.value;
