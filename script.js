@@ -178,7 +178,7 @@ function labelEmojiOnlyButtons(root = document) {
             const title = btn.getAttribute('title');
             const fallback = btn.classList.contains('menu-toggle') ? 'Открыть или закрыть меню'
                 : btn.classList.contains('close') ? 'Закрыть окно'
-                : 'Кнопка действия';
+                    : 'Кнопка действия';
             btn.setAttribute('aria-label', title || fallback);
         }
     });
@@ -349,17 +349,17 @@ function updateBodyScrollLock() {
             const pad = scrollbarWidth ? scrollbarWidth + 'px' : '';
             document.body.style.paddingRight = pad;
             if (nav) nav.style.paddingRight = pad;
-            
+
             const modals = document.querySelectorAll('.modal');
             modals.forEach(m => m.style.paddingRight = pad);
-            
+
             document.body.style.overflow = 'hidden';
         }
     } else {
         document.body.style.overflow = '';
         document.body.style.paddingRight = '';
         if (nav) nav.style.paddingRight = '';
-        
+
         const modals = document.querySelectorAll('.modal');
         modals.forEach(m => m.style.paddingRight = '');
     }
@@ -422,7 +422,7 @@ function smoothScrollToGameResult(el) {
     setTimeout(() => {
         const scrollContainer = el.closest('.modal-content');
         if (!scrollContainer) return;
-        
+
         if (window.innerWidth <= 768) {
             scrollContainer.scrollTo({
                 top: scrollContainer.scrollHeight,
@@ -434,10 +434,10 @@ function smoothScrollToGameResult(el) {
                 const rect = balanceBar.getBoundingClientRect();
                 const containerRect = scrollContainer.getBoundingClientRect();
                 const offsetTop = rect.top - containerRect.top + scrollContainer.scrollTop;
-                
+
                 // Скроллим так, чтобы плашка баланса была видна внизу с запасом 50px
                 const targetScroll = offsetTop + balanceBar.offsetHeight - scrollContainer.clientHeight + 50;
-                
+
                 scrollContainer.scrollTo({
                     top: Math.max(0, targetScroll),
                     behavior: 'smooth'
@@ -1641,7 +1641,7 @@ document.addEventListener('touchend', e => {
     if (touchStartY - touchEndY > 48) {
         const navMenu = document.getElementById('navMenu');
         const toggleBtn = document.querySelector('.menu-toggle');
-        
+
         if (navMenu && navMenu.classList.contains('active')) {
             // Не закрывать меню, если свайп произошел внутри него
             const target = e.target;
@@ -3551,7 +3551,7 @@ function runBettingSimulation() {
     // Hide previous result and notification
     const resultDiv = document.getElementById('betting-match-result');
     resultDiv.style.display = 'none';
-    
+
     const notif = document.getElementById('betting-inline-notif');
     if (notif) {
         notif.classList.remove('show', 'win', 'lose');
@@ -3973,5 +3973,3 @@ function closeSimulationDetails() {
     }
     closeSimulationUI();
 }
-
-
