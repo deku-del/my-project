@@ -1003,9 +1003,12 @@ p {
     width: 0;
     height: 0;
 }
+
 .modal-content {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
 }
 
 .modal-content--wide {
@@ -6374,32 +6377,67 @@ input.money-input.betting-amount-input {
         padding-left: 1.25rem;
     }
 }
+
 @media screen and (max-width: 768px) {
-    .toast-notification, .custom-toast {
+
+    .toast-notification,
+    .custom-toast {
         top: 20px !important;
         bottom: auto !important;
         transform: translateX(-50%) !important;
         animation: toastSlideDownEnterMobile 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
     }
-    .toast-notification.hiding, .custom-toast.hiding {
+
+    .toast-notification.hiding,
+    .custom-toast.hiding {
         animation: toastSlideUpExitMobile 0.5s ease forwards !important;
     }
+
     @keyframes toastSlideDownEnterMobile {
-        from { opacity: 0; transform: translate(-50%, -50px); }
-        to { opacity: 1; transform: translate(-50%, 0); }
+        from {
+            opacity: 0;
+            transform: translate(-50%, -50px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
     }
+
     @keyframes toastSlideUpExitMobile {
-        from { opacity: 1; transform: translate(-50%, 0); }
-        to { opacity: 0; transform: translate(-50%, -50px); }
+        from {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
+        to {
+            opacity: 0;
+            transform: translate(-50%, -50px);
+        }
     }
 }
 
 
-.card-item.red, .card-item.red * { color: #e74c3c !important; }
-.card-item.black, .card-item.black * { color: #2c3e50 !important; }
+.card-item.red,
+.card-item.red * {
+    color: #e74c3c !important;
+}
+
+.card-item.black,
+.card-item.black * {
+    color: #2c3e50 !important;
+}
 
 
-body.light-theme .card-item.red, body.light-theme .card-item.red * { color: #e74c3c !important; -webkit-text-fill-color: #e74c3c !important; }
-body.light-theme .card-item.black, body.light-theme .card-item.black * { color: #2c3e50 !important; -webkit-text-fill-color: #2c3e50 !important; }
+body.light-theme .card-item.red,
+body.light-theme .card-item.red * {
+    color: #e74c3c !important;
+    -webkit-text-fill-color: #e74c3c !important;
+}
 
-
+body.light-theme .card-item.black,
+body.light-theme .card-item.black * {
+    color: #2c3e50 !important;
+    -webkit-text-fill-color: #2c3e50 !important;
+}
