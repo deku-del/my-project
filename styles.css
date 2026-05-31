@@ -4462,6 +4462,15 @@ body.light-theme .menu-toggle {
     color: #1976D2 !important;
 }
 
+body.light-theme .menu-toggle:hover,
+body.light-theme .menu-toggle:active,
+body.light-theme .menu-toggle:focus {
+    background: rgba(255, 255, 255, 0.95) !important;
+    color: #1976D2 !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
 .theme-toggle-btn {
     background: transparent;
     border: none;
@@ -6097,10 +6106,13 @@ body.light-theme .game-bet-fieldset legend {
 
 body.light-theme .theme-toggle-btn:focus,
 body.light-theme .theme-toggle-btn:active,
+body.light-theme .theme-toggle-btn:hover,
 body.light-theme .nav-balance-reset:focus,
 body.light-theme .nav-balance-reset:active,
+body.light-theme .nav-balance-reset:hover,
 body.light-theme .close:focus,
-body.light-theme .close:active {
+body.light-theme .close:active,
+body.light-theme .close:hover {
     outline: none !important;
     box-shadow: none !important;
     background: transparent !important;
