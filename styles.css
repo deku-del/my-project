@@ -6460,3 +6460,15 @@ body.light-theme .card-item.black * {
     color: #2c3e50 !important;
     -webkit-text-fill-color: #2c3e50 !important;
 }
+
+/* --- Контейнер для адаптивного графика Chart.js --- */
+.chart-container {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    height: 40vh;
+    min-height: 250px;
+    max-height: 400px;
+    margin-top: 20px;
+    overflow: hidden;
+}
