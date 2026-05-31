@@ -4469,6 +4469,7 @@ body.light-theme .menu-toggle:focus {
     color: #1976D2 !important;
     box-shadow: none !important;
     transform: none !important;
+    -webkit-tap-highlight-color: transparent !important;
 }
 
 .theme-toggle-btn {
@@ -5026,14 +5027,25 @@ body.light-theme .details-block strong {
     -webkit-text-fill-color: #1565c0 !important;
 }
 
-body.light-theme button {
+/* Кнопки действий (играть, симуляция, сброс) — синий градиент в светлой теме */
+body.light-theme .play-btn,
+body.light-theme .btn-play,
+body.light-theme .btn-reset,
+body.light-theme .btn-details,
+body.light-theme .betting-simulate-btn,
+body.light-theme .bh-reset-btn {
     color: #ffffff !important;
     background: linear-gradient(135deg, #5a9de6, #7ab8f0) !important;
     border: none;
     box-shadow: 0 2px 8px rgba(90, 157, 230, 0.18) !important;
 }
 
-body.light-theme button:hover {
+body.light-theme .play-btn:hover,
+body.light-theme .btn-play:hover,
+body.light-theme .btn-reset:hover,
+body.light-theme .btn-details:hover,
+body.light-theme .betting-simulate-btn:hover,
+body.light-theme .bh-reset-btn:hover {
     background: linear-gradient(135deg, #4a8ed6, #6aabe8) !important;
     box-shadow: 0 4px 14px rgba(74, 142, 214, 0.25) !important;
 }
@@ -6471,4 +6483,33 @@ body.light-theme .card-item.black * {
     max-height: 400px;
     margin-top: 20px;
     overflow: hidden;
+}
+
+/* --- Убрать синюю подсветку при тапе на мобильных --- */
+button,
+a,
+input,
+.menu-toggle,
+.nav-btn,
+.nav-dropbtn,
+.odds-card,
+.theme-toggle-btn {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* --- Карточки ставок — не должны синеть при наведении/тапе в светлой теме --- */
+body.light-theme .odds-card {
+    background: rgba(255, 255, 255, 0.95) !important;
+    color: #1a1a1a !important;
+}
+
+body.light-theme .odds-card:hover {
+    background: rgba(66, 165, 245, 0.08) !important;
+    border-color: rgba(66, 165, 245, 0.4) !important;
+    box-shadow: 0 6px 16px rgba(66, 165, 245, 0.1) !important;
+    transform: translateY(-3px);
+}
+
+body.light-theme .odds-card:active {
+    background: rgba(66, 165, 245, 0.12) !important;
 }
