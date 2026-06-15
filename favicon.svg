@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <radialGradient id="bg3" cx="50%" cy="0%" r="100%">
+      <stop offset="0%" stop-color="#29294a"/>
+      <stop offset="100%" stop-color="#0f1619"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f1c40f"/>
+      <stop offset="50%" stop-color="#f39c12"/>
+      <stop offset="100%" stop-color="#e67e22"/>
+    </linearGradient>
+    <filter id="glow3">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+  
+  <rect width="100" height="100" fill="url(#bg3)" rx="20"/>
+  
+  <path d="M 48 15 A 35 35 0 0 0 48 85 L 43 65 L 53 45 L 43 25 Z" fill="url(#gold)" filter="url(#glow3)"/>
+  <path d="M 52 15 A 35 35 0 0 1 52 85 L 47 65 L 57 45 L 47 25 Z" fill="url(#gold)" opacity="0.35"/>
+  
+  <circle cx="50" cy="50" r="25" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.3"/>
+</svg>
